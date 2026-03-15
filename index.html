@@ -393,6 +393,10 @@
           <input type="checkbox" id="soundsToggle" checked>
           <label for="soundsToggle">Sounds</label>
         </div>
+        <div class="audio-toggle">
+          <input type="checkbox" id="voiceToggle" checked>
+          <label for="voiceToggle">Voice</label>
+        </div>
         <div class="volume-control">
           <div class="volume-label">Volume</div>
           <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="35">
@@ -647,8 +651,46 @@ function playPlaceSound() {
   playChime(329.63, 0.25, 0.1); // E4
 }
 
+// ── Voice Coaching (Speech Synthesis) ──
+let voiceEnabled = true;
+let resolvedVoice = null;
+
+function initVoices() {
+  if (!window.speechSynthesis) return;
+  function loadVoices() {
+    const voices = speechSynthesis.getVoices();
+    if (voices.length === 0) return;
+    // Prefer calm, natural English voices
+    resolvedVoice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Samantha'))
+      || voices.find(v => v.lang.startsWith('en') && (v.name.includes('Female') || v.name.includes('Natural')))
+      || voices.find(v => v.lang.startsWith('en'))
+      || voices[0];
+    console.log('[PeaceMaker Voice] Ready:', resolvedVoice?.name);
+  }
+  loadVoices();
+  speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+function speak(text, rate = 0.8, pitch = 0.92) {
+  if (!voiceEnabled || !text || !window.speechSynthesis || !resolvedVoice) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.voice = resolvedVoice;
+  u.rate = rate;
+  u.pitch = pitch;
+  u.volume = masterGain ? masterGain.gain.value : 0.6;
+  speechSynthesis.speak(u);
+}
+
 // ── Audio Control Handlers ──
 document.addEventListener('DOMContentLoaded', () => {
+  initVoices();
+
+  document.getElementById('voiceToggle')?.addEventListener('change', (e) => {
+    voiceEnabled = e.target.checked;
+    if (!voiceEnabled) speechSynthesis.cancel();
+  });
+
   document.getElementById('ambienceToggle')?.addEventListener('change', (e) => {
     ambienceEnabled = e.target.checked;
     if (ambienceEnabled && audioContext) createAmbience();
@@ -690,6 +732,7 @@ let breathIdx = 0;
 function advanceBreath() {
   const phase = breathPhases[breathIdx];
   document.getElementById('breathText').textContent = phase.text;
+  if (phase.text) speak(phase.text.replace('...', ''), 0.75, 0.9);
   breathIdx = (breathIdx + 1) % breathPhases.length;
   setTimeout(advanceBreath, phase.duration);
 }
@@ -717,8 +760,9 @@ setInterval(() => {
   setTimeout(() => {
     el.textContent = newText;
     el.style.opacity = '1';
+    speak(newText, 0.8, 0.92);
   }, 600);
-}, 15000);
+}, 20000);
 
 // ── Session Timer ──
 function updateTimer() {
@@ -956,6 +1000,11 @@ document.getElementById('startBtn').addEventListener('click', () => {
   running = true;
   lastDrop = performance.now();
   advanceBreath();
+
+  // Welcome message after a short delay
+  setTimeout(() => {
+    speak('Welcome. Take a deep breath. Let the shapes guide your focus.', 0.7, 0.9);
+  }, 1500);
   requestAnimationFrame(gameLoop);
 });
 
