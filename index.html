@@ -5,23 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PeaceMaker — Therapeutic Puzzle</title>
   <meta name="description" content="A calming falling-block puzzle for extended therapeutic play. Based on Oxford/Cambridge research showing visuospatial tasks reduce intrusive trauma memories.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@300;400;500&family=Raleway:wght@200;300;400;500&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg: #1a1a2e;
-      --surface: #16213e;
-      --board-bg: #0a1628;
-      --text: #e8e8e8;
-      --text-muted: #8b8ba7;
-      --accent: #e2b4bd;
-      --glow: rgba(226, 180, 189, 0.15);
+      --bg: #0f0e17;
+      --surface: #1a1932;
+      --accent: #8B5CF6;
+      --accent-light: #C4B5FD;
+      --success: #10B981;
+      --text: #fffffe;
+      --text-muted: #94a1b2;
+      --glass: rgba(26, 25, 50, 0.7);
+      --glass-border: rgba(139, 92, 246, 0.12);
+      --glow: rgba(139, 92, 246, 0.15);
     }
 
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-family: 'Raleway', system-ui, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -32,10 +38,11 @@
     }
 
     h1 {
+      font-family: 'Lora', serif;
       font-size: 1.8rem;
       font-weight: 300;
       letter-spacing: 0.3em;
-      color: var(--accent);
+      color: var(--accent-light);
       margin-bottom: 0.3rem;
       text-transform: uppercase;
     }
@@ -54,21 +61,30 @@
     }
 
     .side-panel {
-      width: 120px;
+      width: 130px;
       display: flex;
       flex-direction: column;
       gap: 1rem;
     }
 
     .panel-box {
-      background: var(--surface);
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border-radius: 12px;
       padding: 1rem;
-      border: 1px solid rgba(226, 180, 189, 0.1);
+      border: 1px solid var(--glass-border);
+      transition: border-color 0.3s ease;
+    }
+
+    .panel-box:hover {
+      border-color: rgba(139, 92, 246, 0.25);
     }
 
     .panel-label {
+      font-family: 'Raleway', sans-serif;
       font-size: 0.6rem;
+      font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.15em;
       color: var(--text-muted);
@@ -76,9 +92,10 @@
     }
 
     .panel-value {
+      font-family: 'Lora', serif;
       font-size: 1.1rem;
       font-weight: 300;
-      color: var(--accent);
+      color: var(--accent-light);
     }
 
     .session-timer {
@@ -90,6 +107,7 @@
     .lines-cleared {
       font-size: 1.6rem;
       font-weight: 200;
+      color: var(--success);
     }
 
     .next-preview {
@@ -106,6 +124,7 @@
       height: 14px;
       border-radius: 3px;
       background: transparent;
+      transition: background 0.2s ease;
     }
 
     .next-cell.filled {
@@ -114,15 +133,14 @@
 
     canvas {
       border-radius: 12px;
-      border: 1px solid rgba(226, 180, 189, 0.12);
-      box-shadow: 0 0 40px var(--glow), 0 0 80px rgba(15, 52, 96, 0.3);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 0 40px var(--glow), 0 0 80px rgba(139, 92, 246, 0.08);
     }
 
-    .breath-guide {
-      text-align: center;
-    }
+    .breath-guide { text-align: center; }
 
     .breath-text {
+      font-family: 'Raleway', sans-serif;
       font-size: 0.85rem;
       color: var(--text-muted);
       font-weight: 300;
@@ -148,14 +166,16 @@
     }
 
     .affirmation {
-      font-size: 0.7rem;
+      font-family: 'Lora', serif;
+      font-size: 0.72rem;
       color: var(--text-muted);
       font-style: italic;
       text-align: center;
       min-height: 2em;
       line-height: 1.5;
-      max-width: 110px;
+      max-width: 120px;
       margin-top: 0.5rem;
+      transition: opacity 0.6s ease;
     }
 
     .controls-hint {
@@ -164,16 +184,96 @@
       color: var(--text-muted);
       text-align: center;
       letter-spacing: 0.08em;
-      opacity: 0.6;
+      opacity: 0.5;
     }
 
     .controls-hint span { margin: 0 0.4rem; }
+
+    /* ── Audio Controls ── */
+    .audio-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .audio-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .audio-toggle label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.2s ease;
+    }
+
+    .audio-toggle label:hover { color: var(--accent-light); }
+
+    .audio-toggle input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+
+    .volume-control {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .volume-label {
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .volume-slider {
+      width: 100%;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(139, 92, 246, 0.15);
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .volume-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 8px var(--glow);
+    }
+
+    .volume-slider::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+    }
 
     /* ── Start Overlay ── */
     .start-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(26, 26, 46, 0.97);
+      background: rgba(15, 14, 23, 0.97);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -185,14 +285,16 @@
     .start-overlay.hidden { opacity: 0; pointer-events: none; }
 
     .start-overlay h2 {
+      font-family: 'Lora', serif;
       font-size: 2.8rem;
-      font-weight: 200;
-      color: var(--accent);
+      font-weight: 300;
+      color: var(--accent-light);
       letter-spacing: 0.4em;
       margin-bottom: 0.5rem;
     }
 
     .start-overlay .tagline {
+      font-family: 'Raleway', sans-serif;
       font-size: 0.8rem;
       color: var(--text-muted);
       letter-spacing: 0.2em;
@@ -200,6 +302,7 @@
     }
 
     .start-overlay p {
+      font-family: 'Raleway', sans-serif;
       color: var(--text-muted);
       font-size: 0.85rem;
       max-width: 420px;
@@ -211,9 +314,11 @@
     .start-btn {
       background: none;
       border: 1px solid var(--accent);
-      color: var(--accent);
+      color: var(--accent-light);
       padding: 0.8rem 3rem;
+      font-family: 'Raleway', sans-serif;
       font-size: 0.9rem;
+      font-weight: 400;
       letter-spacing: 0.2em;
       border-radius: 30px;
       cursor: pointer;
@@ -221,14 +326,14 @@
     }
 
     .start-btn:hover {
-      background: rgba(226, 180, 189, 0.1);
+      background: rgba(139, 92, 246, 0.12);
       box-shadow: 0 0 25px var(--glow);
     }
 
     .research-note {
       margin-top: 2rem;
       font-size: 0.6rem;
-      color: rgba(139, 139, 167, 0.5);
+      color: rgba(148, 161, 178, 0.4);
       max-width: 350px;
       text-align: center;
       line-height: 1.6;
@@ -236,7 +341,7 @@
 
     @media (max-width: 600px) {
       .game-container { flex-direction: column; align-items: center; }
-      .side-panel { flex-direction: row; width: auto; }
+      .side-panel { flex-direction: row; width: auto; flex-wrap: wrap; justify-content: center; }
       canvas { width: 280px; height: 504px; }
     }
   </style>
@@ -278,6 +383,21 @@
         <div class="panel-label">Coming Up</div>
         <div class="next-preview" id="nextPreview"></div>
       </div>
+      <div class="panel-box audio-controls">
+        <div class="panel-label">Audio</div>
+        <div class="audio-toggle">
+          <input type="checkbox" id="ambienceToggle" checked>
+          <label for="ambienceToggle">Ambience</label>
+        </div>
+        <div class="audio-toggle">
+          <input type="checkbox" id="soundsToggle" checked>
+          <label for="soundsToggle">Sounds</label>
+        </div>
+        <div class="volume-control">
+          <div class="volume-label">Volume</div>
+          <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="35">
+        </div>
+      </div>
     </div>
 
     <!-- Game Board -->
@@ -295,9 +415,9 @@
   </div>
 
   <div class="controls-hint">
-    <span>← → move</span>
-    <span>↑ rotate</span>
-    <span>↓ nudge</span>
+    <span>&larr; &rarr; move</span>
+    <span>&uarr; rotate</span>
+    <span>&darr; nudge</span>
     <span>space place</span>
   </div>
 
@@ -306,20 +426,20 @@
 // PeaceMaker — Therapeutic Falling Block Puzzle
 //
 // LEGALLY DISTINCT from Tetris:
-//   • Board: 10 x 18 (not 10x20)
-//   • Shapes: mix of 3, 4, and 5-cell pieces (not standard tetrominoes)
-//   • Unique rotation (bounding-box center, not SRS)
-//   • No "game over" — compassionate row clearing
-//   • No scoring — session time + rows cleared only
-//   • Name: "PeaceMaker" (no Tetris branding)
+//   - Board: 10 x 18 (not 10x20)
+//   - Shapes: mix of 3, 4, and 5-cell pieces (not standard tetrominoes)
+//   - Unique rotation (bounding-box center, not SRS)
+//   - No "game over" — compassionate row clearing
+//   - No scoring — session time + rows cleared only
+//   - Name: "PeaceMaker" (no Tetris branding)
 //
 // THERAPEUTIC DESIGN (based on research):
-//   • Very slow drop speed (2s per row, gets slower over time)
-//   • Visuospatial engagement via mental rotation
-//   • Breathing guide (4-phase, 8s cycle)
-//   • Gentle affirmations
-//   • Pastel color palette, no harsh contrasts
-//   • No punishment, no stress indicators
+//   - Very slow drop speed (2s per row, gets slower over time)
+//   - Visuospatial engagement via mental rotation
+//   - Breathing guide (4-phase, 8s cycle)
+//   - Gentle affirmations
+//   - Therapeutic pastel palette, no harsh contrasts
+//   - No punishment, no stress indicators
 // ══════════════════════════════════════════════════════════════
 
 const canvas = document.getElementById('board');
@@ -342,46 +462,231 @@ const COLORS = [
 ];
 
 // ── Shapes: Legally distinct (not standard tetrominoes) ──
-// Mix of 3-cell, 4-cell, and 5-cell pieces
 const SHAPES = [
-  // 3-cell: gentle corner
   { cells: [[0,0],[1,0],[0,1]], name: 'corner' },
-  // 3-cell: short line
   { cells: [[0,0],[1,0],[2,0]], name: 'dash' },
-  // 4-cell: arch
   { cells: [[1,0],[0,1],[1,1],[2,1]], name: 'arch' },
-  // 4-cell: wave left
   { cells: [[0,0],[1,0],[1,1],[2,1]], name: 'wave-l' },
-  // 4-cell: wave right
   { cells: [[1,0],[2,0],[0,1],[1,1]], name: 'wave-r' },
-  // 4-cell: beam
   { cells: [[0,0],[1,0],[2,0],[3,0]], name: 'beam' },
-  // 4-cell: hook
   { cells: [[0,0],[0,1],[1,1],[2,1]], name: 'hook' },
-  // 5-cell: plus (pentomino)
   { cells: [[1,0],[0,1],[1,1],[2,1],[1,2]], name: 'plus' },
-  // 5-cell: U-shape (pentomino)
   { cells: [[0,0],[2,0],[0,1],[1,1],[2,1]], name: 'cup' },
 ];
 
-// ── Game State ──
+// ══════════════════════════════════════════════════════════════
+// Audio System — Natural, Calming Soundscape
+// ══════════════════════════════════════════════════════════════
+
+let audioContext = null;
+let masterGain = null;
+let ambienceGain = null;
+let effectsGain = null;
+let ambienceNodes = [];
+let ambienceEnabled = true;
+let soundsEnabled = true;
+
+// Initialize audio system (requires user gesture)
+function initAudio() {
+  if (audioContext) return;
+
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  audioContext.resume();
+
+  // Master volume (lower default for gentleness)
+  masterGain = audioContext.createGain();
+  masterGain.gain.value = 0.35;
+  masterGain.connect(audioContext.destination);
+
+  // Ambience channel (very subtle)
+  ambienceGain = audioContext.createGain();
+  ambienceGain.gain.value = 1.0;
+  ambienceGain.connect(masterGain);
+
+  // Effects channel (soft, warm)
+  effectsGain = audioContext.createGain();
+  effectsGain.gain.value = 0.6;
+  effectsGain.connect(masterGain);
+
+  createAmbience();
+}
+
+// Create organic, warm ambient soundscape
+function createAmbience() {
+  if (!audioContext || !ambienceEnabled) return;
+
+  stopAmbience();
+
+  // 1. Deep meditation drone with slow LFO modulation
+  const drone = audioContext.createOscillator();
+  drone.type = 'triangle'; // Warmer than sine
+  drone.frequency.value = 65; // Low C
+
+  const droneLFO = audioContext.createOscillator();
+  droneLFO.type = 'sine';
+  droneLFO.frequency.value = 0.08; // Very slow modulation (12.5s cycle)
+
+  const lfoGain = audioContext.createGain();
+  lfoGain.gain.value = 2; // Subtle frequency modulation
+  droneLFO.connect(lfoGain);
+  lfoGain.connect(drone.frequency);
+
+  const droneGain = audioContext.createGain();
+  droneGain.gain.value = 0.08;
+
+  drone.connect(droneGain);
+  droneGain.connect(ambienceGain);
+  drone.start();
+  droneLFO.start();
+  ambienceNodes.push(drone, droneLFO);
+
+  // 2. Soft pad (perfect 5th above for harmony)
+  const pad = audioContext.createOscillator();
+  pad.type = 'triangle';
+  pad.frequency.value = 97.5; // Perfect 5th above (G)
+
+  const padGain = audioContext.createGain();
+  padGain.gain.value = 0.05;
+
+  pad.connect(padGain);
+  padGain.connect(ambienceGain);
+  pad.start();
+  ambienceNodes.push(pad);
+
+  // 3. Very soft filtered pink noise (ocean-like)
+  const bufferSize = audioContext.sampleRate * 4;
+  const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+  const output = noiseBuffer.getChannelData(0);
+
+  // Generate pink noise (more natural than white noise)
+  let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+  for (let i = 0; i < bufferSize; i++) {
+    const white = Math.random() * 2 - 1;
+    b0 = 0.99886 * b0 + white * 0.0555179;
+    b1 = 0.99332 * b1 + white * 0.0750759;
+    b2 = 0.96900 * b2 + white * 0.1538520;
+    b3 = 0.86650 * b3 + white * 0.3104856;
+    b4 = 0.55000 * b4 + white * 0.5329522;
+    b5 = -0.7616 * b5 - white * 0.0168980;
+    output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+    b6 = white * 0.115926;
+  }
+
+  const noise = audioContext.createBufferSource();
+  noise.buffer = noiseBuffer;
+  noise.loop = true;
+
+  // Heavy low-pass filter for very gentle ocean/wind sound
+  const noiseFilter = audioContext.createBiquadFilter();
+  noiseFilter.type = 'lowpass';
+  noiseFilter.frequency.value = 250; // Much lower cutoff
+  noiseFilter.Q.value = 0.3;
+
+  const noiseGain = audioContext.createGain();
+  noiseGain.gain.value = 0.04; // Very subtle
+
+  noise.connect(noiseFilter);
+  noiseFilter.connect(noiseGain);
+  noiseGain.connect(ambienceGain);
+  noise.start();
+  ambienceNodes.push(noise);
+}
+
+function stopAmbience() {
+  ambienceNodes.forEach(node => {
+    try {
+      if (node.stop) node.stop();
+    } catch (e) {}
+  });
+  ambienceNodes = [];
+}
+
+// Play warm, soft chime with natural envelope
+function playChime(frequency = 440, duration = 0.5, volume = 0.15) {
+  if (!audioContext || !soundsEnabled) return;
+
+  const osc = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+
+  osc.type = 'triangle'; // Warmer than sine
+  osc.frequency.value = frequency;
+
+  const now = audioContext.currentTime;
+
+  // Natural attack and decay envelope
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(volume, now + 0.02); // Gentle attack
+  gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+  osc.connect(gain);
+  gain.connect(effectsGain);
+
+  osc.start(now);
+  osc.stop(now + duration);
+}
+
+// Gentle, peaceful line clear (descending, like wind chimes)
+function playLineClearTone() {
+  if (!audioContext || !soundsEnabled) return;
+  // Pentatonic scale descending (peaceful, Asian-inspired)
+  const notes = [523.25, 440, 349.23]; // C5, A4, F4
+  notes.forEach((freq, i) => {
+    setTimeout(() => playChime(freq, 0.6, 0.12), i * 120);
+  });
+}
+
+function playRotateSound() {
+  if (!audioContext || !soundsEnabled) return;
+  // Very subtle, short tone
+  playChime(392, 0.15, 0.08); // G4, barely audible
+}
+
+function playPlaceSound() {
+  if (!audioContext || !soundsEnabled) return;
+  // Soft, reassuring tone
+  playChime(329.63, 0.25, 0.1); // E4
+}
+
+// ── Audio Control Handlers ──
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('ambienceToggle')?.addEventListener('change', (e) => {
+    ambienceEnabled = e.target.checked;
+    if (ambienceEnabled && audioContext) createAmbience();
+    else stopAmbience();
+  });
+
+  document.getElementById('soundsToggle')?.addEventListener('change', (e) => {
+    soundsEnabled = e.target.checked;
+  });
+
+  document.getElementById('volumeSlider')?.addEventListener('input', (e) => {
+    const volume = parseInt(e.target.value) / 100;
+    if (masterGain) masterGain.gain.value = volume;
+  });
+});
+
+// ══════════════════════════════════════════════════════════════
+// Game State
+// ══════════════════════════════════════════════════════════════
+
 let board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
 let current = null;
 let next = null;
 let linesCleared = 0;
 let sessionStart = null;
-let dropInterval = 2000; // 2 seconds — very therapeutic
+let dropInterval = 2000;
 let lastDrop = 0;
 let running = false;
 
-// ── Breathing Guide (4-phase, synced to animation) ──
+// ── Breathing Guide ──
 const breathPhases = [
   { text: 'Inhale slowly...', duration: 3000 },
-  { text: 'Hold gently...', duration: 2000 },
+  { text: 'Hold gently...',   duration: 2000 },
   { text: 'Exhale softly...', duration: 3000 },
-  { text: '', duration: 1500 },
+  { text: '',                  duration: 1500 },
 ];
 let breathIdx = 0;
+
 function advanceBreath() {
   const phase = breathPhases[breathIdx];
   document.getElementById('breathText').textContent = phase.text;
@@ -389,7 +694,7 @@ function advanceBreath() {
   setTimeout(advanceBreath, phase.duration);
 }
 
-// ── Gentle Affirmations ──
+// ── Affirmations ──
 const affirmations = [
   'You are safe in this moment.',
   'One shape at a time.',
@@ -403,18 +708,19 @@ const affirmations = [
   'The shapes will wait for you.',
 ];
 let affIdx = 0;
+
 setInterval(() => {
   affIdx = (affIdx + 1) % affirmations.length;
   const el = document.getElementById('affirmation');
+  const newText = affirmations[affIdx];
   el.style.opacity = '0';
   setTimeout(() => {
-    el.textContent = affirmations[affIdx];
+    el.textContent = newText;
     el.style.opacity = '1';
   }, 600);
 }, 15000);
-document.getElementById('affirmation').style.transition = 'opacity 0.6s ease';
 
-// ── Timer ──
+// ── Session Timer ──
 function updateTimer() {
   if (!sessionStart) return;
   const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
@@ -424,7 +730,10 @@ function updateTimer() {
 }
 setInterval(updateTimer, 1000);
 
-// ── Piece Management ──
+// ══════════════════════════════════════════════════════════════
+// Piece Management
+// ══════════════════════════════════════════════════════════════
+
 function randomPiece() {
   const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
   const color = COLORS[Math.floor(Math.random() * COLORS.length)];
@@ -486,10 +795,18 @@ function rotate() {
   const cy = Math.round((Math.min(...ys) + Math.max(...ys)) / 2);
   const rotated = current.cells.map(([x, y]) => [cx - (y - cy), cy + (x - cx)]);
 
-  if (!collides(rotated)) { current.cells = rotated; return; }
+  if (!collides(rotated)) {
+    current.cells = rotated;
+    playRotateSound();
+    return;
+  }
   for (const kick of [-1, 1, -2, 2]) {
     const kicked = rotated.map(([x, y]) => [x + kick, y]);
-    if (!collides(kicked)) { current.cells = kicked; return; }
+    if (!collides(kicked)) {
+      current.cells = kicked;
+      playRotateSound();
+      return;
+    }
   }
 }
 
@@ -497,6 +814,7 @@ function lockPiece() {
   current.cells.forEach(([x, y]) => {
     if (y >= 0 && y < ROWS && x >= 0 && x < COLS) board[y][x] = current.color;
   });
+  playPlaceSound();
   clearLines();
   spawnPiece();
 }
@@ -514,8 +832,8 @@ function clearLines() {
   if (cleared > 0) {
     linesCleared += cleared;
     document.getElementById('lines').textContent = linesCleared;
-    // Get progressively slower (more relaxing over time)
     dropInterval = Math.min(3000, dropInterval + 20);
+    playLineClearTone();
   }
 }
 
@@ -524,13 +842,17 @@ function hardDrop() {
   lockPiece();
 }
 
-// ── Rendering ──
+// ══════════════════════════════════════════════════════════════
+// Rendering
+// ══════════════════════════════════════════════════════════════
+
 function drawBoard() {
-  ctx.fillStyle = '#0a1628';
+  // Board background
+  ctx.fillStyle = '#0d0c1a';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Subtle grid
-  ctx.strokeStyle = 'rgba(226, 180, 189, 0.035)';
+  ctx.strokeStyle = 'rgba(139, 92, 246, 0.04)';
   ctx.lineWidth = 0.5;
   for (let x = 0; x <= COLS; x++) {
     ctx.beginPath(); ctx.moveTo(x * CELL, 0); ctx.lineTo(x * CELL, ROWS * CELL); ctx.stroke();
@@ -548,7 +870,7 @@ function drawBoard() {
 
   if (!current) return;
 
-  // Ghost (drop preview)
+  // Ghost piece (drop preview)
   let ghost = current.cells.map(([x, y]) => [x, y]);
   while (!ghost.some(([x, y]) =>
     x < 0 || x >= COLS || y + 1 >= ROWS || (y + 1 >= 0 && board[y + 1]?.[x])
@@ -576,7 +898,10 @@ function drawCell(x, y, color, alpha) {
   ctx.globalAlpha = 1;
 }
 
-// ── Game Loop ──
+// ══════════════════════════════════════════════════════════════
+// Game Loop
+// ══════════════════════════════════════════════════════════════
+
 function gameLoop(ts) {
   if (!running) return;
   if (ts - lastDrop > dropInterval) {
@@ -587,22 +912,25 @@ function gameLoop(ts) {
   requestAnimationFrame(gameLoop);
 }
 
-// ── Input ──
+// ── Keyboard Input ──
 document.addEventListener('keydown', (e) => {
   if (!running || !current) return;
   switch (e.key) {
-    case 'ArrowLeft': move(-1, 0); break;
+    case 'ArrowLeft':  move(-1, 0); break;
     case 'ArrowRight': move(1, 0); break;
-    case 'ArrowDown': move(0, 1); break;
-    case 'ArrowUp': rotate(); break;
-    case ' ': e.preventDefault(); hardDrop(); break;
+    case 'ArrowDown':  move(0, 1); break;
+    case 'ArrowUp':    rotate(); break;
+    case ' ':          e.preventDefault(); hardDrop(); break;
   }
   drawBoard();
 });
 
-// Touch controls
+// ── Touch Controls ──
 let tx = 0, ty = 0;
-canvas.addEventListener('touchstart', e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; });
+canvas.addEventListener('touchstart', e => {
+  tx = e.touches[0].clientX;
+  ty = e.touches[0].clientY;
+});
 canvas.addEventListener('touchend', e => {
   if (!current) return;
   const dx = e.changedTouches[0].clientX - tx;
@@ -613,9 +941,16 @@ canvas.addEventListener('touchend', e => {
   drawBoard();
 });
 
-// ── Start ──
+// ══════════════════════════════════════════════════════════════
+// Start
+// ══════════════════════════════════════════════════════════════
+
 document.getElementById('startBtn').addEventListener('click', () => {
   document.getElementById('startOverlay').classList.add('hidden');
+
+  // Initialize audio (user gesture context)
+  initAudio();
+
   sessionStart = Date.now();
   spawnPiece();
   running = true;
@@ -624,6 +959,7 @@ document.getElementById('startBtn').addEventListener('click', () => {
   requestAnimationFrame(gameLoop);
 });
 
+// Initial board render
 drawBoard();
 </script>
 </body>

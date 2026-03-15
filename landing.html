@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PeaceMaker — Therapeutic Puzzle</title>
+  <meta name="description" content="A calming visuospatial puzzle experience designed to quiet intrusive thoughts. Based on Oxford &amp; Cambridge ICTI research.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&family=Raleway:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0f0e17;
+      --surface: #1a1932;
+      --accent: #8B5CF6;
+      --accent-light: #C4B5FD;
+      --cta: #10B981;
+      --cta-hover: #0d9668;
+      --text: #fffffe;
+      --text-muted: #94a1b2;
+      --glass-bg: rgba(26, 25, 50, 0.6);
+      --glass-blur: blur(16px);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Raleway', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-weight: 400;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, h4 { font-family: 'Lora', serif; font-weight: 600; }
+
+    a { color: var(--accent-light); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: var(--accent); }
+
+    /* --- Fade-in on scroll --- */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .fade-in { opacity: 1; transform: none; transition: none; }
+    }
+
+    /* --- Nav --- */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2rem;
+      background: rgba(15, 14, 23, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+    }
+    nav .logo {
+      font-family: 'Lora', serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--accent-light);
+    }
+    nav ul { list-style: none; display: flex; gap: 1.5rem; }
+    nav ul li a {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 0.03em;
+    }
+    nav ul li a:hover { color: var(--text); }
+
+    /* --- Sections --- */
+    section {
+      padding: 6rem 1.5rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .section-label {
+      font-family: 'Raleway', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+    .section-title {
+      font-size: clamp(1.75rem, 4vw, 2.5rem);
+      margin-bottom: 1.25rem;
+      line-height: 1.25;
+    }
+    .section-desc {
+      color: var(--text-muted);
+      max-width: 640px;
+      font-size: 1.05rem;
+    }
+
+    /* --- Hero --- */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      position: relative;
+      padding-top: 5rem;
+    }
+    .hero-breathing {
+      position: absolute;
+      width: 420px; height: 420px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, transparent 70%);
+      animation: breathe 6s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes breathe {
+      0%, 100% { transform: scale(0.85); opacity: 0.4; }
+      50% { transform: scale(1.15); opacity: 0.8; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hero-breathing { animation: none; opacity: 0.5; transform: scale(1); }
+    }
+    .hero-content { position: relative; z-index: 1; }
+    .hero h1 {
+      font-size: clamp(3rem, 8vw, 5.5rem);
+      letter-spacing: 0.12em;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--text), var(--accent-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.25rem;
+    }
+    .hero-subtitle {
+      font-family: 'Raleway', sans-serif;
+      font-size: 1rem;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+    }
+    .hero-tagline {
+      font-size: clamp(1rem, 2.5vw, 1.25rem);
+      color: var(--text-muted);
+      max-width: 520px;
+      margin: 0 auto 2.5rem;
+      font-weight: 300;
+    }
+    .cta-btn {
+      display: inline-block;
+      padding: 0.9rem 2.5rem;
+      background: var(--cta);
+      color: var(--bg);
+      font-family: 'Raleway', sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: background 0.25s, transform 0.2s, box-shadow 0.25s;
+      box-shadow: 0 0 24px rgba(16, 185, 129, 0.25);
+      letter-spacing: 0.04em;
+    }
+    .cta-btn:hover {
+      background: var(--cta-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 0 32px rgba(16, 185, 129, 0.4);
+      color: var(--bg);
+    }
+    .hero-research {
+      margin-top: 2.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* --- Glass Card --- */
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid rgba(139, 92, 246, 0.15);
+      border-radius: 16px;
+      padding: 2rem;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .glass-card:hover {
+      border-color: rgba(139, 92, 246, 0.35);
+      box-shadow: 0 0 30px rgba(139, 92, 246, 0.08);
+    }
+
+    /* --- Science --- */
+    .science-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+      margin: 2.5rem 0;
+    }
+    .stat-card { text-align: center; }
+    .stat-number {
+      font-family: 'Lora', serif;
+      font-size: 2.25rem;
+      font-weight: 700;
+      color: var(--accent-light);
+      margin-bottom: 0.5rem;
+    }
+    .stat-label {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .science-explain {
+      margin-top: 2rem;
+      color: var(--text-muted);
+      max-width: 720px;
+      font-size: 1rem;
+      line-height: 1.8;
+    }
+    .science-citations {
+      margin-top: 1.25rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .science-citations a { font-size: 0.8rem; }
+
+    /* --- Steps --- */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2.5rem;
+    }
+    .step-card { position: relative; padding-top: 2.5rem; }
+    .step-number {
+      position: absolute;
+      top: -0.25rem;
+      left: 2rem;
+      font-family: 'Lora', serif;
+      font-size: 3rem;
+      font-weight: 700;
+      color: rgba(139, 92, 246, 0.15);
+      line-height: 1;
+    }
+    .step-card h3 {
+      font-size: 1.15rem;
+      margin-bottom: 0.5rem;
+      color: var(--accent-light);
+    }
+    .step-card p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    /* --- Features --- */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-top: 2.5rem;
+    }
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1.25rem 1.5rem;
+    }
+    .feature-icon {
+      flex-shrink: 0;
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      background: rgba(139, 92, 246, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+    .feature-item h4 {
+      font-size: 1rem;
+      margin-bottom: 0.2rem;
+    }
+    .feature-item p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    /* --- Disclaimer --- */
+    .disclaimer {
+      max-width: 700px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .disclaimer-card {
+      border-color: rgba(139, 92, 246, 0.25);
+      padding: 2.5rem;
+    }
+    .disclaimer-card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 0.75rem;
+      line-height: 1.7;
+    }
+    .disclaimer-card p:last-child { margin-bottom: 0; }
+    .disclaimer-card strong { color: var(--accent-light); font-weight: 600; }
+
+    /* --- Footer --- */
+    footer {
+      border-top: 1px solid rgba(139, 92, 246, 0.1);
+      padding: 3rem 1.5rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+    footer .footer-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    footer .footer-brand {
+      font-family: 'Lora', serif;
+      font-size: 1rem;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+    }
+    footer .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.75rem;
+    }
+    footer .footer-links a { font-size: 0.8rem; }
+
+    /* --- Responsive --- */
+    @media (max-width: 640px) {
+      nav ul { display: none; }
+      section { padding: 4rem 1.25rem; }
+      .glass-card { padding: 1.5rem; }
+      .hero-breathing { width: 280px; height: 280px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav aria-label="Main navigation">
+    <span class="logo">PeaceMaker</span>
+    <ul role="list">
+      <li><a href="#science">Science</a></li>
+      <li><a href="#how-it-works">How It Works</a></li>
+      <li><a href="#design">Design</a></li>
+      <li><a href="index.html">Play</a></li>
+    </ul>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-breathing" aria-hidden="true"></div>
+    <div class="hero-content">
+      <h1 id="hero-title">PeaceMaker</h1>
+      <p class="hero-subtitle">Therapeutic Puzzle</p>
+      <p class="hero-tagline">A calming visuospatial experience designed to quiet intrusive thoughts.</p>
+      <a href="index.html" class="cta-btn" role="button">Begin a Session</a>
+      <p class="hero-research">Based on Oxford &amp; Cambridge ICTI research</p>
+    </div>
+  </section>
+
+  <!-- The Science -->
+  <section id="science" aria-labelledby="science-title">
+    <div class="fade-in">
+      <p class="section-label">The Science</p>
+      <h2 class="section-title" id="science-title">Why it works</h2>
+    </div>
+    <div class="science-grid">
+      <article class="glass-card stat-card fade-in">
+        <div class="stat-number">10x</div>
+        <p class="stat-label">fewer flashbacks reported in the Oxford visuospatial intervention study</p>
+      </article>
+      <article class="glass-card stat-card fade-in">
+        <div class="stat-number">70%</div>
+        <p class="stat-label">of participants symptom-free at six months follow-up</p>
+      </article>
+      <article class="glass-card stat-card fade-in">
+        <div class="stat-number">NHS</div>
+        <p class="stat-label">adopted for frontline healthcare workers during the COVID-19 pandemic</p>
+      </article>
+    </div>
+    <p class="science-explain fade-in">
+      Visuospatial tasks performed during the window of memory reconsolidation compete with
+      traumatic imagery for working-memory resources. This interference weakens the vividness
+      and emotional charge of intrusive flashbacks, reducing their frequency over time.
+    </p>
+    <p class="science-citations fade-in">
+      <a href="https://doi.org/10.1177/0956797610389196" target="_blank" rel="noopener noreferrer">Holmes et al., 2009 — Oxford Study</a>
+      &nbsp;&middot;&nbsp;
+      <a href="https://doi.org/10.1017/S0033291720004225" target="_blank" rel="noopener noreferrer">Iyadurai et al., 2020 — Cambridge ICTI Trial</a>
+    </p>
+  </section>
+
+  <!-- How It Works -->
+  <section id="how-it-works" aria-labelledby="steps-title">
+    <div class="fade-in">
+      <p class="section-label">How It Works</p>
+      <h2 class="section-title" id="steps-title">Three gentle steps</h2>
+    </div>
+    <div class="steps-grid">
+      <article class="glass-card step-card fade-in">
+        <span class="step-number" aria-hidden="true">1</span>
+        <h3>Focus on the shapes</h3>
+        <p>Engage your visual processing system. Rotating and placing blocks occupies the same mental workspace that intrusive images compete for.</p>
+      </article>
+      <article class="glass-card step-card fade-in">
+        <span class="step-number" aria-hidden="true">2</span>
+        <h3>Breathe with the guide</h3>
+        <p>A gentle breathing guide helps regulate your nervous system, lowering physiological arousal and creating a sense of safety.</p>
+      </article>
+      <article class="glass-card step-card fade-in">
+        <span class="step-number" aria-hidden="true">3</span>
+        <h3>Let your mind settle</h3>
+        <p>Extended, unhurried play builds cognitive resilience. There is no rush, no failure state — only presence.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- Therapeutic Design -->
+  <section id="design" aria-labelledby="design-title">
+    <div class="fade-in">
+      <p class="section-label">Therapeutic Design</p>
+      <h2 class="section-title" id="design-title">Every detail serves your wellbeing</h2>
+    </div>
+    <div class="features-grid">
+      <article class="glass-card feature-item fade-in">
+        <div class="feature-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        </div>
+        <div>
+          <h4>No game over</h4>
+          <p>Play continues as long as you need. The experience adapts to you.</p>
+        </div>
+      </article>
+      <article class="glass-card feature-item fade-in">
+        <div class="feature-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </div>
+        <div>
+          <h4>No scoring pressure</h4>
+          <p>Points and competition are removed. Your only goal is calm.</p>
+        </div>
+      </article>
+      <article class="glass-card feature-item fade-in">
+        <div class="feature-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div>
+          <h4>Shapes slow down</h4>
+          <p>Pieces gradually decelerate over time, easing you into a meditative pace.</p>
+        </div>
+      </article>
+      <article class="glass-card feature-item fade-in">
+        <div class="feature-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10z"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+        </div>
+        <div>
+          <h4>Breathing guide</h4>
+          <p>Visual and optional voice coaching to help regulate your breath.</p>
+        </div>
+      </article>
+      <article class="glass-card feature-item fade-in">
+        <div class="feature-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div>
+          <h4>Gentle affirmations</h4>
+          <p>Quiet, supportive messages appear naturally during play.</p>
+        </div>
+      </article>
+      <article class="glass-card feature-item fade-in">
+        <div class="feature-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        </div>
+        <div>
+          <h4>Ambient soundscape</h4>
+          <p>Layered, calming audio designed to reduce tension and promote focus.</p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- Important Note -->
+  <section id="note" aria-labelledby="note-title" class="disclaimer">
+    <div class="glass-card disclaimer-card fade-in">
+      <p class="section-label">Important Note</p>
+      <h2 class="section-title" id="note-title" style="font-size: 1.5rem;">A tool, not a treatment</h2>
+      <p><strong>PeaceMaker is a supplementary tool, not a replacement for professional therapy.</strong></p>
+      <p>For best results, use under clinical guidance or as a complementary coping strategy alongside evidence-based treatment.</p>
+      <p>If you are experiencing trauma or psychological distress, please reach out to a qualified mental health professional.</p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-inner">
+      <p class="footer-brand">Built with care by Th3rdAI</p>
+      <p>A therapeutic visuospatial intervention tool</p>
+      <div class="footer-links">
+        <a href="https://github.com/th3rdai/PeaceMaker" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://doi.org/10.1177/0956797610389196" target="_blank" rel="noopener noreferrer">Oxford Study</a>
+        <a href="https://doi.org/10.1017/S0033291720004225" target="_blank" rel="noopener noreferrer">Cambridge ICTI Trial</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scroll fade-in observer -->
+  <script>
+    (function () {
+      if (!('IntersectionObserver' in window)) {
+        document.querySelectorAll('.fade-in').forEach(function (el) {
+          el.classList.add('visible');
+        });
+        return;
+      }
+
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+      document.querySelectorAll('.fade-in').forEach(function (el) {
+        observer.observe(el);
+      });
+    })();
+  </script>
+
+</body>
+</html>
