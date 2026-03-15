@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slow Tetris — Therapeutic Edition v3</title>
+<style>
+  :root {
+    --bg: #0f1623;
+    --surface: #1a2332;
+    --surface-light: #243044;
+    --border: #2d3f56;
+    --text: #e2e8f0;
+    --text-dim: #8899aa;
+    --accent: #7c8cf8;
+    --accent-glow: rgba(124,140,248,0.3);
+    --calm-1: #8ecae6;
+    --calm-2: #a8dadc;
+    --calm-3: #b8c0ff;
+    --calm-4: #c8b6ff;
+    --calm-5: #ffc8dd;
+    --calm-6: #bde0fe;
+    --calm-7: #cdb4db;
+    --success: #6bcb77;
+    --warning: #ffd93d;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 30% 50%, rgba(124,140,248,0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 50%, rgba(142,202,230,0.04) 0%, transparent 50%);
+    animation: ambientDrift 20s ease-in-out infinite;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  @keyframes ambientDrift {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    33% { transform: translate(2%, -1%) rotate(1deg); }
+    66% { transform: translate(-1%, 1%) rotate(-0.5deg); }
+  }
+
+  .app { position: relative; z-index: 1; width: 100%; max-width: 900px; padding: 1rem; }
+
+  .screen { display: none; }
+  .screen.active { display: flex; }
+
+  /* ─── Nav Bar ─── */
+  .nav-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .nav-btn {
+    padding: 0.5rem 1.2rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover { border-color: var(--accent); color: var(--text); }
+  .nav-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* Voice toggle */
+  .voice-toggle {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 0.72rem;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .voice-toggle:hover { border-color: var(--accent); color: var(--text); }
+  .voice-toggle.on { border-color: var(--calm-1); color: var(--calm-1); }
+  .voice-toggle .voice-icon { font-size: 1rem; line-height: 1; }
+  .voice-toggle .voice-label { letter-spacing: 0.03em; }
+
+  /* Speaking indicator */
+  @keyframes speakPulse {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.1); }
+  }
+  .speaking-indicator {
+    display: none;
+    align-items: center;
+    gap: 3px;
+    margin-left: 0.4rem;
+  }
+  .speaking-indicator.active { display: inline-flex; }
+  .speak-bar {
+    width: 2px;
+    background: var(--calm-1);
+    border-radius: 1px;
+    animation: speakPulse 0.8s ease-in-out infinite;
+  }
+  .speak-bar:nth-child(1) { height: 6px; animation-delay: 0s; }
+  .speak-bar:nth-child(2) { height: 10px; animation-delay: 0.15s; }
+  .speak-bar:nth-child(3) { height: 6px; animation-delay: 0.3s; }
+
+  /* ─── Check-in Screen ─── */
+  .checkin-screen {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1rem;
+    text-align: center;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+  .checkin-screen h1 { font-size: 1.8rem; font-weight: 300; color: var(--calm-1); }
+  .checkin-screen p { color: var(--text-dim); line-height: 1.6; font-size: 0.95rem; }
+
+  .mood-grid { display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center; }
+  .mood-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+    padding: 0.8rem 1rem; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; color: var(--text); cursor: pointer;
+    transition: all 0.3s ease; font-size: 0.8rem; min-width: 85px;
+  }
+  .mood-btn:hover {
+    background: var(--surface-light); border-color: var(--accent);
+    transform: translateY(-2px); box-shadow: 0 4px 20px var(--accent-glow);
+  }
+  .mood-btn .emoji { font-size: 1.8rem; }
+  .mood-btn.selected { border-color: var(--accent); background: rgba(124,140,248,0.15); }
+
+  .disclaimer { font-size: 0.72rem; color: var(--text-dim); opacity: 0.7; max-width: 360px; line-height: 1.5; }
+
+  /* ─── Flashback Step ─── */
+  .step-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.2rem;
+    width: 100%;
+    max-width: 420px;
+    text-align: left;
+  }
+  .step-section h3 { font-size: 0.85rem; color: var(--calm-1); margin-bottom: 0.5rem; }
+  .step-section p { font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+
+  .count-selector {
+    display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap;
+  }
+  .count-btn {
+    padding: 0.4rem 0.8rem; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg); color: var(--text-dim); cursor: pointer; font-size: 0.8rem;
+    transition: all 0.2s;
+  }
+  .count-btn:hover { border-color: var(--accent); color: var(--text); }
+  .count-btn.selected { border-color: var(--accent); background: rgba(124,140,248,0.15); color: var(--text); }
+
+  /* Memory recall */
+  .recall-box {
+    background: linear-gradient(135deg, rgba(124,140,248,0.08), rgba(142,202,230,0.08));
+    border: 1px solid rgba(124,140,248,0.2);
+    border-radius: 12px;
+    padding: 1rem;
+    width: 100%;
+    max-width: 420px;
+  }
+  .recall-box p { font-size: 0.82rem; color: var(--text); line-height: 1.6; }
+  .recall-box .note { font-size: 0.72rem; color: var(--text-dim); margin-top: 0.5rem; }
+
+  /* ─── Game Screen ─── */
+  .game-screen {
+    flex-direction: row; gap: 1.5rem; padding: 0.5rem;
+    align-items: flex-start; justify-content: center;
+  }
+  .game-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1rem; }
+  .board-wrapper { position: relative; }
+  canvas#gameBoard { border-radius: 8px; display: block; }
+  .side-panel { display: flex; flex-direction: column; gap: 0.8rem; min-width: 195px; }
+
+  .info-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 0.8rem;
+  }
+  .info-card h3 { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dim); margin-bottom: 0.4rem; }
+  .info-card .value { font-size: 1.3rem; font-weight: 300; color: var(--calm-1); }
+  .info-card .sub { font-size: 0.7rem; color: var(--text-dim); margin-top: 0.2rem; }
+
+  canvas#nextPiece { border-radius: 6px; display: block; margin-top: 0.4rem; }
+
+  .coach-bubble {
+    background: linear-gradient(135deg, rgba(124,140,248,0.1), rgba(142,202,230,0.1));
+    border: 1px solid rgba(124,140,248,0.2);
+    border-radius: 12px; padding: 0.7rem 0.8rem;
+    font-size: 0.82rem; line-height: 1.5; color: var(--text);
+    min-height: 55px; transition: opacity 0.5s ease;
+  }
+  .coach-label {
+    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); margin-bottom: 0.25rem;
+    display: flex; align-items: center; gap: 0.3rem;
+  }
+
+  .timer-bar { width: 100%; height: 4px; background: var(--surface-light); border-radius: 2px; overflow: hidden; margin-top: 0.4rem; }
+  .timer-fill { height: 100%; background: linear-gradient(90deg, var(--calm-1), var(--accent)); border-radius: 2px; transition: width 1s linear; }
+
+  .speed-dots { display: flex; gap: 4px; margin-top: 0.25rem; }
+  .speed-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background 0.3s; }
+  .speed-dot.active { background: var(--calm-1); }
+
+  .pause-overlay {
+    position: absolute; inset: 0; background: rgba(15,22,35,0.88);
+    display: none; justify-content: center; align-items: center;
+    border-radius: 8px; flex-direction: column; gap: 1rem;
+  }
+  .pause-overlay.visible { display: flex; }
+  .pause-overlay h2 { font-weight: 300; color: var(--calm-1); font-size: 1.2rem; }
+  .pause-overlay p { color: var(--text-dim); font-size: 0.82rem; }
+
+  .controls-hint { font-size: 0.65rem; color: var(--text-dim); text-align: center; opacity: 0.6; margin-top: 0.4rem; }
+
+  /* ─── Buttons ─── */
+  .btn {
+    padding: 0.6rem 1.3rem; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--surface); color: var(--text); cursor: pointer;
+    font-size: 0.82rem; transition: all 0.2s ease;
+  }
+  .btn:hover { background: var(--surface-light); border-color: var(--accent); }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), #6b7cf7); border: none; color: white; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 15px var(--accent-glow); }
+  .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.75rem; }
+
+  /* ─── Post-Session ─── */
+  .postsession-screen {
+    flex-direction: column; align-items: center; gap: 1.2rem;
+    padding: 1rem; max-width: 480px; text-align: center; margin: 0 auto;
+  }
+  .postsession-screen h2 { font-weight: 300; color: var(--calm-1); font-size: 1.4rem; }
+  .stat-row { display: flex; gap: 0.75rem; width: 100%; }
+  .stat-card { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0.8rem; }
+  .stat-card .label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); }
+  .stat-card .val { font-size: 1.3rem; font-weight: 300; color: var(--calm-1); margin-top: 0.2rem; }
+
+  .journal-area {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1rem; text-align: left;
+  }
+  .journal-area textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); padding: 0.7rem; font-family: inherit;
+    font-size: 0.82rem; resize: vertical; min-height: 70px; margin-top: 0.4rem;
+  }
+  .journal-area textarea:focus { outline: none; border-color: var(--accent); }
+
+  /* ─── Dashboard ─── */
+  .dashboard-screen {
+    flex-direction: column; align-items: center; gap: 1.2rem;
+    padding: 1rem; max-width: 680px; margin: 0 auto;
+  }
+  .dashboard-screen h2 { font-weight: 300; color: var(--calm-1); font-size: 1.4rem; }
+
+  .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; width: 100%; }
+  .dash-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1rem;
+  }
+  .dash-card.full { grid-column: 1 / -1; }
+  .dash-card h3 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 0.6rem; }
+  .dash-big { font-size: 2rem; font-weight: 300; color: var(--calm-1); }
+  .dash-sub { font-size: 0.75rem; color: var(--text-dim); margin-top: 0.2rem; }
+
+  .chart-area { width: 100%; height: 120px; position: relative; }
+  .chart-area svg { width: 100%; height: 100%; }
+
+  .session-list {
+    max-height: 200px; overflow-y: auto; display: flex;
+    flex-direction: column; gap: 0.4rem;
+  }
+  .session-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.5rem 0.6rem; background: var(--bg); border-radius: 8px;
+    font-size: 0.75rem;
+  }
+  .session-item .si-date { color: var(--text-dim); }
+  .session-item .si-dur { color: var(--calm-1); }
+  .session-item .si-mood { font-size: 1rem; }
+
+  .empty-state { color: var(--text-dim); font-size: 0.85rem; padding: 1.5rem; text-align: center; }
+
+
+  @media (max-width: 700px) {
+    .game-screen { flex-direction: column; align-items: center; }
+    .side-panel { min-width: unset; width: 100%; max-width: 280px; }
+    .dash-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Nav -->
+  <div class="nav-bar" id="navBar">
+    <button class="nav-btn active" onclick="navigateTo('home')" id="navHome">Home</button>
+    <button class="nav-btn" onclick="navigateTo('dashboard')" id="navDash">Progress</button>
+    <button class="voice-toggle" id="voiceToggle" onclick="toggleVoice()">
+      <span class="voice-icon" id="voiceIcon">&#x1f50a;</span>
+      <span class="voice-label" id="voiceLabel">Voice On</span>
+    </button>
+  </div>
+
+
+  <!-- ─── Home / Check-in ─── -->
+  <div id="checkinScreen" class="screen checkin-screen active">
+    <h1>Slow Tetris</h1>
+    <p>A calming space for mindful play.<br>Take your time. There's no rush, no score, no pressure.</p>
+
+    <!-- Step 1: Mood -->
+    <div id="step-mood">
+      <p style="font-size:0.9rem; color:var(--text);">How are you feeling right now?</p>
+      <div class="mood-grid" id="preMoodGrid"></div>
+    </div>
+
+    <!-- Step 2: Flashback count -->
+    <div id="step-flashback" style="display:none;">
+      <div class="step-section">
+        <h3>Quick check-in</h3>
+        <p>Since your last session, how many intrusive memories or flashbacks have you noticed?</p>
+        <div class="count-selector" id="flashbackSelector"></div>
+      </div>
+    </div>
+
+    <!-- Step 3: Optional memory recall (gated — 3+ sessions) -->
+    <div id="step-recall" style="display:none;">
+      <div class="recall-box">
+        <div class="coach-label">Optional — Memory Recall</div>
+        <p>Some people find it helpful to briefly bring to mind an image that's been bothering them before playing. This is completely optional.</p>
+        <p class="note">You don't need to describe it or dwell on it. Just let it appear briefly, then we'll play.</p>
+        <div style="display:flex; gap:0.5rem; margin-top:0.8rem;">
+          <button class="btn btn-sm btn-primary" onclick="doRecall(true)">I'll try it</button>
+          <button class="btn btn-sm" onclick="doRecall(false)">Not today</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Recall moment -->
+    <div id="step-recall-moment" style="display:none;">
+      <div class="recall-box" style="text-align:center;">
+        <p>Take a moment to bring that image to mind — just for a few seconds.</p>
+        <p style="margin-top:0.5rem; color:var(--calm-1); font-size:1.5rem;">...</p>
+        <p class="note" style="margin-top:1rem;">When you're ready, the game will help your mind shift away.</p>
+        <button class="btn btn-primary" style="margin-top:1rem;" onclick="launchGame()">Start Playing</button>
+      </div>
+    </div>
+
+    <!-- Start button -->
+    <div id="step-start" style="display:none;">
+      <button class="btn btn-primary" onclick="launchGame()" id="startBtn">Begin Session</button>
+    </div>
+
+    <p class="disclaimer">
+      This is a wellness tool, not a replacement for professional mental health care.
+      If you're in crisis, please contact the 988 Suicide &amp; Crisis Lifeline (call or text 988).
+    </p>
+  </div>
+
+  <!-- ─── Game Screen ─── -->
+  <div id="gameScreen" class="screen game-screen">
+    <div class="game-panel">
+      <div class="board-wrapper">
+        <canvas id="gameBoard" width="250" height="500"></canvas>
+        <div class="pause-overlay" id="pauseOverlay">
+          <h2>Paused</h2>
+          <p>Take a breath. Resume when you're ready.</p>
+          <button class="btn btn-primary" onclick="togglePause()">Continue</button>
+        </div>
+      </div>
+      <div class="controls-hint">
+        &larr; &rarr; move &nbsp; &uarr; rotate &nbsp; &darr; soft drop &nbsp; Space pause
+      </div>
+    </div>
+    <div class="side-panel">
+      <div class="info-card">
+        <h3>Session</h3>
+        <div class="value" id="timerDisplay">0:00</div>
+        <div class="sub">Target: 20 minutes</div>
+        <div class="timer-bar"><div class="timer-fill" id="timerFill" style="width:0%"></div></div>
+      </div>
+      <div class="info-card">
+        <h3>Next</h3>
+        <canvas id="nextPiece" width="80" height="80"></canvas>
+      </div>
+      <div class="info-card">
+        <h3>Flow Speed</h3>
+        <div class="speed-dots" id="speedDots"></div>
+        <div class="sub" id="speedLabel">Gentle</div>
+      </div>
+      <div class="info-card">
+        <h3>Lines</h3>
+        <div class="value" id="linesDisplay">0</div>
+      </div>
+      <div class="info-card coach-bubble" id="coachBubble">
+        <div class="coach-label">
+          Mindful Coach
+          <span class="speaking-indicator" id="speakingIndicator">
+            <span class="speak-bar"></span>
+            <span class="speak-bar"></span>
+            <span class="speak-bar"></span>
+          </span>
+        </div>
+        <div id="coachText">Welcome.</div>
+      </div>
+      <button class="btn" onclick="endSession()" style="width:100%;">End Session</button>
+    </div>
+  </div>
+
+  <!-- ─── Post-Session ─── -->
+  <div id="postScreen" class="screen postsession-screen">
+    <h2>Session Complete</h2>
+    <p style="color:var(--text-dim);">Nice work. Here's how your session went.</p>
+    <div class="stat-row">
+      <div class="stat-card"><div class="label">Duration</div><div class="val" id="postDuration">0:00</div></div>
+      <div class="stat-card"><div class="label">Blocks</div><div class="val" id="postBlocks">0</div></div>
+      <div class="stat-card"><div class="label">Lines</div><div class="val" id="postLines">0</div></div>
+      <div class="stat-card"><div class="label">Rotations</div><div class="val" id="postRotations">0</div></div>
+    </div>
+    <p style="font-size:0.9rem;">How do you feel now compared to before?</p>
+    <div class="mood-grid" id="postMoodGrid"></div>
+    <div class="journal-area" id="journalArea" style="display:none;">
+      <div class="coach-label">Reflection (optional)</div>
+      <p style="font-size:0.82rem; color:var(--text-dim); margin-top:0.3rem;" id="journalPrompt"></p>
+      <textarea id="journalEntry" placeholder="Write anything you'd like to remember..."></textarea>
+      <button class="btn btn-sm" style="margin-top:0.5rem;" onclick="saveJournalAndFinish()">Save & Done</button>
+    </div>
+    <button class="btn btn-primary" id="postDoneBtn" onclick="finishSession()">Done</button>
+  </div>
+
+  <!-- ─── Dashboard ─── -->
+  <div id="dashboardScreen" class="screen dashboard-screen">
+    <h2>Your Progress</h2>
+    <div id="dashContent"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  VOICE COACH — Google TTS + Web Audio Chimes
+//  (speechSynthesis broken on macOS Chrome,
+//   using Audio element + Google Translate TTS
+//   for speech, and Web Audio API for chimes)
+// ═══════════════════════════════════════════
+const VoiceCoach = {
+  enabled: true,
+  queue: [],
+  busy: false,
+  currentAudio: null,
+  audioCtx: null,
+
+  init() {
+    try {
+      const saved = sessionStorage.getItem('slowTetrisVoice');
+      if (saved !== null) this.enabled = saved === 'true';
+    } catch {}
+    this.updateToggleUI();
+  },
+
+  _getAudioCtx() {
+    if (!this.audioCtx) {
+      this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return this.audioCtx;
+  },
+
+  // ── Play a gentle chime (for gameplay coaching) ──
+  chime(style = 'coaching') {
+    if (!this.enabled) return;
+    try {
+      const ctx = this._getAudioCtx();
+      if (ctx.state === 'suspended') ctx.resume();
+
+      const now = ctx.currentTime;
+      if (style === 'coaching') {
+        // Gentle 2-note chime: C5 → E5
+        [[523.25, 0], [659.25, 0.15]].forEach(([freq, delay]) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.4, now + delay);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + delay + 0.7);
+          osc.start(now + delay);
+          osc.stop(now + delay + 0.7);
+        });
+      } else if (style === 'session-end') {
+        // Warm 3-note ascending chime: C5 → E5 → G5
+        [[523.25, 0], [659.25, 0.2], [783.99, 0.4]].forEach(([freq, delay]) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.45, now + delay);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + delay + 0.9);
+          osc.start(now + delay);
+          osc.stop(now + delay + 0.9);
+        });
+      } else if (style === 'level') {
+        // Warm tone for speed changes
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'triangle';
+        osc.frequency.value = 440;
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        osc.start(now);
+        osc.stop(now + 0.5);
+      }
+    } catch(e) { /* silent fail */ }
+  },
+
+  // ── Speak text using Google Translate TTS ──
+  speak(text, priority = 'normal') {
+    if (!this.enabled) return;
+
+    if (priority === 'high') {
+      // Stop current audio and clear queue
+      if (this.currentAudio) {
+        this.currentAudio.pause();
+        this.currentAudio = null;
+      }
+      this.queue = [];
+      this.busy = false;
+    }
+
+    // Truncate to ~190 chars to fit Google TTS URL limit
+    const shortText = text.length > 190 ? text.substring(0, 187) + '...' : text;
+    this.queue.push(shortText);
+    if (!this.busy) this._processQueue();
+  },
+
+  ttsFailCount: 0,
+
+  _processQueue() {
+    if (this.queue.length === 0 || this.busy) {
+      if (this.queue.length === 0) this._setSpeakingIndicator(false);
+      return;
+    }
+
+    this.busy = true;
+    this._setSpeakingIndicator(true);
+    const text = this.queue.shift();
+    const encoded = encodeURIComponent(text);
+    const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=${encoded}`;
+
+    const audio = new Audio(url);
+    audio.crossOrigin = 'anonymous';
+    this.currentAudio = audio;
+
+    const onSuccess = () => {
+      this.ttsFailCount = 0;
+      this.busy = false;
+      this.currentAudio = null;
+      setTimeout(() => this._processQueue(), 300);
+    };
+
+    const onFail = () => {
+      this.ttsFailCount++;
+      this.busy = false;
+      this.currentAudio = null;
+      // Loud fallback chime so user hears something
+      this.chime('coaching');
+      // If TTS keeps failing, show a note in the coach text area
+      if (this.ttsFailCount >= 3) {
+        const el = document.getElementById('coachText');
+        if (el && !el.dataset.ttsWarned) {
+          el.dataset.ttsWarned = 'true';
+          el.textContent = '(Voice audio unavailable — read coaching text here)';
+        }
+      }
+      setTimeout(() => this._processQueue(), 200);
+    };
+
+    audio.onended = onSuccess;
+    audio.onerror = onFail;
+
+    // Timeout: if audio hasn't started playing within 5s, treat as fail
+    const timeout = setTimeout(() => {
+      if (audio.readyState === 0) {
+        audio.onended = null;
+        audio.onerror = null;
+        try { audio.pause(); } catch {}
+        onFail();
+      }
+    }, 5000);
+
+    audio.oncanplaythrough = () => clearTimeout(timeout);
+
+    audio.play().then(() => {
+      clearTimeout(timeout);
+    }).catch(() => {
+      clearTimeout(timeout);
+      onFail();
+    });
+  },
+
+  stop() {
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio = null;
+    }
+    this.queue = [];
+    this.busy = false;
+    this._setSpeakingIndicator(false);
+  },
+
+  toggle() {
+    this.enabled = !this.enabled;
+    try { sessionStorage.setItem('slowTetrisVoice', String(this.enabled)); } catch {}
+    this.updateToggleUI();
+    if (!this.enabled) {
+      this.stop();
+    } else {
+      this.speak("Voice coach enabled.", 'high');
+    }
+  },
+
+  updateToggleUI() {
+    const el = document.getElementById('voiceToggle');
+    const icon = document.getElementById('voiceIcon');
+    const label = document.getElementById('voiceLabel');
+    if (!el) return;
+    if (this.enabled) {
+      el.classList.add('on');
+      icon.innerHTML = '&#x1f50a;';
+      label.textContent = 'Voice On';
+    } else {
+      el.classList.remove('on');
+      icon.innerHTML = '&#x1f507;';
+      label.textContent = 'Voice Off';
+    }
+  },
+
+  _setSpeakingIndicator(active) {
+    const el = document.getElementById('speakingIndicator');
+    if (el) el.classList.toggle('active', active);
+  }
+};
+
+function toggleVoice() { VoiceCoach.toggle(); }
+
+// ═══════════════════════════════════════════
+//  DATA STORE
+// ═══════════════════════════════════════════
+const DB = { sessions: [], getTotalSessions() { return this.sessions.length; } };
+
+try {
+  const saved = sessionStorage.getItem('slowTetrisDB');
+  if (saved) DB.sessions = JSON.parse(saved);
+} catch {}
+
+function saveDB() {
+  try { sessionStorage.setItem('slowTetrisDB', JSON.stringify(DB.sessions)); } catch {}
+}
+
+// ═══════════════════════════════════════════
+//  TETRIS CONFIG
+// ═══════════════════════════════════════════
+const COLS = 10, ROWS = 20, CELL = 25, TARGET_MINUTES = 20;
+
+const COLORS = [null, '#8ecae6', '#a8dadc', '#b8c0ff', '#c8b6ff', '#ffc8dd', '#bde0fe', '#cdb4db'];
+const SHAPES = [
+  [],
+  [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+  [[2,2],[2,2]],
+  [[0,3,0],[3,3,3],[0,0,0]],
+  [[0,4,4],[4,4,0],[0,0,0]],
+  [[5,5,0],[0,5,5],[0,0,0]],
+  [[6,0,0],[6,6,6],[0,0,0]],
+  [[0,0,7],[7,7,7],[0,0,0]],
+];
+
+// ═══════════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════════
+let board = [], currentPiece = null, nextPieceType = 0;
+let gameLoop = null, paused = false, gameActive = false;
+let linesCleared = 0, blocksPlaced = 0, sessionStartTime = 0;
+let preMood = '', postMood = '', flashbackCount = -1, usedRecall = false;
+let baseInterval = 1200, currentInterval = 1200, placementTimes = [];
+let lastPieceSpawnTime = 0, speedLevel = 1;
+let rotationsThisPiece = 0, totalRotations = 0, sessionPieceCount = 0;
+let coachIndex = 0;
+let boardCtx, previewCtx;
+let currentScreen = 'checkinScreen';
+
+// ═══════════════════════════════════════════
+//  COACHING MESSAGES
+// ═══════════════════════════════════════════
+const EARLY = [
+  "As each block appears, try to picture it rotated in your mind before you place it.",
+  "Take your time. Visualize where this piece fits best before moving it.",
+  "Try rotating the block in your imagination first — then use the arrow keys.",
+  "There's no timer. Breathe, picture the rotation, then place.",
+  "Notice the shape. Can you see it flipped in your mind's eye?",
+  "Mental rotation is the key. Picture the piece turned 90 degrees before pressing up.",
+];
+const ENCOURAGE = [
+  "You're doing great. Keep that thoughtful pace.",
+  "Nice placement. Your spatial awareness is building.",
+  "Good rhythm. You're finding your flow.",
+  "Take a breath between pieces if you need to.",
+  "Your focus is strong right now. Stay with it.",
+  "Beautiful. You're in the zone.",
+  "Each piece you place mindfully strengthens new brain pathways.",
+];
+const ROT_PROMPTS = [
+  "Try rotating this one before placing it — even if it already fits.",
+  "Picture this block upside down. What does it look like?",
+  "Can you imagine this piece turned sideways in your mind?",
+];
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+function init() {
+  boardCtx = document.getElementById('gameBoard').getContext('2d');
+  previewCtx = document.getElementById('nextPiece').getContext('2d');
+  const dotsEl = document.getElementById('speedDots');
+  for (let i = 0; i < 5; i++) {
+    const d = document.createElement('div');
+    d.className = 'speed-dot' + (i === 0 ? ' active' : '');
+    dotsEl.appendChild(d);
+  }
+  document.addEventListener('keydown', handleKey);
+  buildMoodGrid('preMoodGrid', selectPreMood);
+  buildMoodGrid('postMoodGrid', selectPostMood, true);
+  buildFlashbackSelector();
+
+  // Init voice coach
+  VoiceCoach.init();
+}
+
+// ═══════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  currentScreen = id;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  if (id === 'checkinScreen') document.getElementById('navHome').classList.add('active');
+  if (id === 'dashboardScreen') document.getElementById('navDash').classList.add('active');
+}
+
+function navigateTo(target) {
+  if (gameActive) { if (!confirm('End current session?')) return; endSession(); return; }
+  VoiceCoach.stop();
+  if (target === 'home') { resetCheckin(); showScreen('checkinScreen'); }
+  if (target === 'dashboard') { renderDashboard(); showScreen('dashboardScreen'); }
+}
+
+// ═══════════════════════════════════════════
+//  CHECK-IN FLOW
+// ═══════════════════════════════════════════
+function buildMoodGrid(containerId, handler, isPost) {
+  const el = document.getElementById(containerId);
+  const moods = isPost
+    ? [['better','Better'], ['same','Same'], ['worse','Worse']]
+    : [['good','Good'], ['okay','Okay'], ['struggling','Struggling'], ['distressed','Distressed']];
+  const emojis = isPost
+    ? { better: '\ud83d\ude0a', same: '\ud83d\ude10', worse: '\ud83d\ude14' }
+    : { good: '\ud83d\ude0a', okay: '\ud83d\ude10', struggling: '\ud83d\ude14', distressed: '\ud83d\ude30' };
+
+  moods.forEach(([val, label]) => {
+    const btn = document.createElement('button');
+    btn.className = 'mood-btn';
+    btn.innerHTML = `<span class="emoji">${emojis[val]}</span>${label}`;
+    btn.onclick = () => handler(val, btn, containerId);
+    el.appendChild(btn);
+  });
+}
+
+function selectPreMood(mood, btn, gridId) {
+  preMood = mood;
+  document.querySelectorAll(`#${gridId} .mood-btn`).forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+
+  // Show flashback step
+  document.getElementById('step-flashback').style.display = 'block';
+
+  // Voice: respond to mood
+  const moodResponses = {
+    good: "Glad to hear you're feeling good. Let's keep that positive energy going.",
+    okay: "That's okay. Let's take this at your pace.",
+    struggling: "I'm here with you. Let's start slow and take it one piece at a time.",
+    distressed: "I'm glad you're here. Let's start very gently. Focus only on the next block."
+  };
+  VoiceCoach.speak(moodResponses[mood], 'high');
+
+  if (mood === 'distressed') {
+    setCoach("I'm glad you're here. Let's start slow. Focus only on the next block. One piece at a time.", false);
+  }
+}
+
+function buildFlashbackSelector() {
+  const el = document.getElementById('flashbackSelector');
+  ['0', '1-2', '3-5', '5+', 'Skip'].forEach(label => {
+    const btn = document.createElement('button');
+    btn.className = 'count-btn';
+    btn.textContent = label;
+    btn.onclick = () => {
+      flashbackCount = label === 'Skip' ? -1 : label === '0' ? 0 : label === '1-2' ? 1.5 : label === '3-5' ? 4 : 7;
+      document.querySelectorAll('#flashbackSelector .count-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+
+      // Voice acknowledgment
+      if (label === '0') VoiceCoach.speak("That's really good. Zero flashbacks is a great sign.", 'high');
+      else if (label !== 'Skip') VoiceCoach.speak("Thank you for sharing that. This session will help.", 'high');
+
+      showNextStep();
+    };
+    el.appendChild(btn);
+  });
+}
+
+function showNextStep() {
+  const totalSessions = DB.getTotalSessions();
+  if (totalSessions >= 3) {
+    document.getElementById('step-recall').style.display = 'block';
+    document.getElementById('step-start').style.display = 'none';
+    VoiceCoach.speak("You've completed a few sessions now. Would you like to try a brief memory recall before playing? This is completely optional.", 'high');
+  } else {
+    document.getElementById('step-recall').style.display = 'none';
+    document.getElementById('step-start').style.display = 'block';
+    VoiceCoach.speak("You're all set. Press Begin Session whenever you're ready.", 'high');
+  }
+}
+
+function doRecall(yes) {
+  usedRecall = yes;
+  document.getElementById('step-recall').style.display = 'none';
+  if (yes) {
+    document.getElementById('step-recall-moment').style.display = 'block';
+    VoiceCoach.speak("Take a moment to bring that image to mind. Just for a few seconds. You don't need to hold onto it. When you're ready, press Start Playing, and the game will help your mind shift away.", 'high');
+  } else {
+    document.getElementById('step-start').style.display = 'block';
+    VoiceCoach.speak("That's perfectly fine. Press Begin Session whenever you're ready.", 'high');
+  }
+}
+
+function resetCheckin() {
+  preMood = ''; postMood = ''; flashbackCount = -1; usedRecall = false;
+  document.querySelectorAll('#preMoodGrid .mood-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('#flashbackSelector .count-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('#postMoodGrid .mood-btn').forEach(b => b.classList.remove('selected'));
+  ['step-flashback','step-recall','step-recall-moment','step-start'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  document.getElementById('journalArea').style.display = 'none';
+  document.getElementById('journalEntry').value = '';
+}
+
+// ═══════════════════════════════════════════
+//  GAME START
+// ═══════════════════════════════════════════
+function launchGame() {
+  VoiceCoach.stop();
+  document.getElementById('navBar').style.display = 'none';
+  showScreen('gameScreen');
+  board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+  linesCleared = 0; blocksPlaced = 0; totalRotations = 0;
+  sessionStartTime = Date.now(); placementTimes = [];
+  sessionPieceCount = 0; coachIndex = 0;
+  speedLevel = 1; currentInterval = baseInterval; paused = false;
+
+  let welcomeMsg;
+  if (preMood === 'distressed') welcomeMsg = "I'm glad you're here. Let's start slow. One piece at a time.";
+  else if (preMood === 'struggling') welcomeMsg = "Let this be a quiet moment for you. Watch the blocks fall and place them gently.";
+  else welcomeMsg = EARLY[0];
+
+  setCoach(welcomeMsg, true);
+  updateDisplay(); spawnPiece(); startLoop();
+}
+
+// ═══════════════════════════════════════════
+//  GAME LOOP
+// ═══════════════════════════════════════════
+function startLoop() { gameActive = true; clearInterval(gameLoop); gameLoop = setInterval(tick, currentInterval); }
+
+function tick() {
+  if (paused || !gameActive) return;
+  if (!moveDown()) { lockPiece(); clearLines(); spawnPiece(); adaptDifficulty(); maybeCoach(); }
+  draw(); updateTimer();
+}
+
+function randomPieceType() { return Math.floor(Math.random() * 7) + 1; }
+
+function spawnPiece() {
+  const type = nextPieceType || randomPieceType();
+  nextPieceType = randomPieceType();
+  const shape = SHAPES[type].map(r => [...r]);
+  currentPiece = { type, shape, x: Math.floor((COLS - shape[0].length) / 2), y: 0 };
+  rotationsThisPiece = 0; lastPieceSpawnTime = Date.now(); sessionPieceCount++;
+  drawNextPiece();
+  if (collides(currentPiece.shape, currentPiece.x, currentPiece.y)) {
+    for (let r = ROWS - 4; r < ROWS; r++) board[r] = Array(COLS).fill(0);
+  }
+}
+
+function collides(shape, px, py) {
+  for (let r = 0; r < shape.length; r++)
+    for (let c = 0; c < shape[r].length; c++) {
+      if (!shape[r][c]) continue;
+      const nx = px + c, ny = py + r;
+      if (nx < 0 || nx >= COLS || ny >= ROWS) return true;
+      if (ny >= 0 && board[ny][nx]) return true;
+    }
+  return false;
+}
+
+function moveDown() { if (collides(currentPiece.shape, currentPiece.x, currentPiece.y + 1)) return false; currentPiece.y++; return true; }
+function moveLeft() { if (!collides(currentPiece.shape, currentPiece.x - 1, currentPiece.y)) { currentPiece.x--; draw(); } }
+function moveRight() { if (!collides(currentPiece.shape, currentPiece.x + 1, currentPiece.y)) { currentPiece.x++; draw(); } }
+
+function rotate() {
+  const s = currentPiece.shape, sz = s.length;
+  const rot = Array.from({ length: sz }, () => Array(sz).fill(0));
+  for (let r = 0; r < sz; r++) for (let c = 0; c < sz; c++) rot[c][sz-1-r] = s[r][c];
+  for (const dx of [0,-1,1,-2,2]) {
+    if (!collides(rot, currentPiece.x + dx, currentPiece.y)) {
+      currentPiece.shape = rot; currentPiece.x += dx;
+      rotationsThisPiece++; totalRotations++; draw(); return;
+    }
+  }
+}
+
+function lockPiece() {
+  const { shape, x, y, type } = currentPiece;
+  for (let r = 0; r < shape.length; r++)
+    for (let c = 0; c < shape[r].length; c++) {
+      if (!shape[r][c]) continue;
+      const ny = y + r, nx = x + c;
+      if (ny >= 0 && ny < ROWS && nx >= 0 && nx < COLS) board[ny][nx] = type;
+    }
+  blocksPlaced++;
+  placementTimes.push(Date.now() - lastPieceSpawnTime);
+  if (placementTimes.length > 10) placementTimes.shift();
+}
+
+function clearLines() {
+  let cleared = 0;
+  for (let r = ROWS - 1; r >= 0; r--) {
+    if (board[r].every(c => c !== 0)) { board.splice(r, 1); board.unshift(Array(COLS).fill(0)); cleared++; r++; }
+  }
+  linesCleared += cleared;
+  document.getElementById('linesDisplay').textContent = linesCleared;
+}
+
+// ── Adaptive ──
+function adaptDifficulty() {
+  if (placementTimes.length < 3) return;
+  const avg = placementTimes.reduce((a,b) => a+b, 0) / placementTimes.length;
+  let nl = speedLevel;
+  if (avg > 8000) nl = Math.max(1, speedLevel - 1);
+  else if (avg > 5000) nl = speedLevel;
+  else if (avg > 3000) nl = Math.min(5, speedLevel + (speedLevel < 3 ? 1 : 0));
+  else if (avg > 1500) nl = Math.min(5, speedLevel + (speedLevel < 4 ? 1 : 0));
+  else nl = Math.min(5, speedLevel + 1);
+  if (nl !== speedLevel) {
+    const oldLevel = speedLevel;
+    speedLevel = nl;
+    currentInterval = [1400,1200,1000,800,650][speedLevel-1];
+    clearInterval(gameLoop); gameLoop = setInterval(tick, currentInterval);
+    updateSpeedDots();
+    // Voice announce speed changes
+    if (nl > oldLevel) VoiceCoach.speak("Nice pace. Speeding up slightly.");
+    else VoiceCoach.speak("Slowing down a little. Take your time.");
+  }
+}
+
+function updateSpeedDots() {
+  const dots = document.querySelectorAll('.speed-dot');
+  const labels = ['Very Gentle','Gentle','Moderate','Flowing','Brisk'];
+  dots.forEach((d,i) => d.classList.toggle('active', i < speedLevel));
+  document.getElementById('speedLabel').textContent = labels[speedLevel-1];
+}
+
+// ── Coaching ──
+function maybeCoach() {
+  if (sessionPieceCount <= 8) {
+    if (sessionPieceCount % 3 === 0 && coachIndex < EARLY.length) setCoach(EARLY[coachIndex++], true);
+    return;
+  }
+  if (sessionPieceCount > 5 && sessionPieceCount % 6 === 0 && totalRotations/sessionPieceCount < 0.5) {
+    setCoach(ROT_PROMPTS[Math.floor(Math.random()*ROT_PROMPTS.length)], true); return;
+  }
+  if (sessionPieceCount % 10 === 0) setCoach(ENCOURAGE[Math.floor(Math.random()*ENCOURAGE.length)], true);
+}
+
+function setCoach(text, alsoSpeak) {
+  const el = document.getElementById('coachText');
+  el.style.opacity = '0';
+  setTimeout(() => { el.textContent = text; el.style.opacity = '1'; }, 300);
+  if (alsoSpeak) VoiceCoach.speak(text);
+}
+
+// ── Drawing ──
+function draw() {
+  const ctx = boardCtx;
+  ctx.fillStyle = '#0d1520'; ctx.fillRect(0, 0, COLS*CELL, ROWS*CELL);
+  ctx.strokeStyle = 'rgba(45,63,86,0.3)'; ctx.lineWidth = 0.5;
+  for (let r = 0; r <= ROWS; r++) { ctx.beginPath(); ctx.moveTo(0, r*CELL); ctx.lineTo(COLS*CELL, r*CELL); ctx.stroke(); }
+  for (let c = 0; c <= COLS; c++) { ctx.beginPath(); ctx.moveTo(c*CELL, 0); ctx.lineTo(c*CELL, ROWS*CELL); ctx.stroke(); }
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (board[r][c]) drawCell(ctx, c, r, COLORS[board[r][c]], 0.85);
+  if (currentPiece) {
+    let gy = currentPiece.y;
+    while (!collides(currentPiece.shape, currentPiece.x, gy+1)) gy++;
+    if (gy !== currentPiece.y)
+      for (let r = 0; r < currentPiece.shape.length; r++)
+        for (let c = 0; c < currentPiece.shape[r].length; c++)
+          if (currentPiece.shape[r][c]) drawCell(ctx, currentPiece.x+c, gy+r, COLORS[currentPiece.type], 0.15);
+    for (let r = 0; r < currentPiece.shape.length; r++)
+      for (let c = 0; c < currentPiece.shape[r].length; c++)
+        if (currentPiece.shape[r][c]) drawCell(ctx, currentPiece.x+c, currentPiece.y+r, COLORS[currentPiece.type], 1);
+  }
+}
+
+function drawCell(ctx, x, y, color, alpha) {
+  const p = 1;
+  ctx.globalAlpha = alpha; ctx.fillStyle = color;
+  ctx.beginPath(); ctx.roundRect(x*CELL+p, y*CELL+p, CELL-p*2, CELL-p*2, 3); ctx.fill();
+  ctx.globalAlpha = alpha * 0.3; ctx.fillStyle = '#fff';
+  ctx.fillRect(x*CELL+p+2, y*CELL+p+2, CELL-p*2-4, 2); ctx.globalAlpha = 1;
+}
+
+function drawNextPiece() {
+  const ctx = previewCtx, shape = SHAPES[nextPieceType];
+  ctx.fillStyle = '#0d1520'; ctx.fillRect(0, 0, 80, 80);
+  const sz = shape.length, off = (80 - sz*18) / 2;
+  for (let r = 0; r < sz; r++) for (let c = 0; c < sz; c++) if (shape[r][c]) {
+    ctx.globalAlpha = 0.9; ctx.fillStyle = COLORS[shape[r][c] || nextPieceType];
+    ctx.beginPath(); ctx.roundRect(off+c*18+1, off+r*18+1, 16, 16, 2); ctx.fill(); ctx.globalAlpha = 1;
+  }
+}
+
+function updateTimer() {
+  const el = Date.now() - sessionStartTime, m = Math.floor(el/60000), s = Math.floor((el%60000)/1000);
+  document.getElementById('timerDisplay').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  document.getElementById('timerFill').style.width = `${Math.min(100,(el/(TARGET_MINUTES*60000))*100)}%`;
+  if (m === TARGET_MINUTES && s === 0) {
+    const msg = "You've reached 20 minutes \u2014 the recommended session length. Feel free to keep going or end whenever you're ready.";
+    setCoach(msg, true);
+  }
+}
+
+function updateDisplay() { document.getElementById('linesDisplay').textContent = linesCleared; updateSpeedDots(); }
+
+function handleKey(e) {
+  if (!gameActive) return;
+  if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); togglePause(); return; }
+  if (paused) return;
+  switch (e.key) {
+    case 'ArrowLeft': e.preventDefault(); moveLeft(); break;
+    case 'ArrowRight': e.preventDefault(); moveRight(); break;
+    case 'ArrowUp': e.preventDefault(); rotate(); break;
+    case 'ArrowDown': e.preventDefault(); moveDown(); draw(); break;
+  }
+}
+
+function togglePause() {
+  paused = !paused;
+  document.getElementById('pauseOverlay').classList.toggle('visible', paused);
+  if (paused) {
+    VoiceCoach.stop();
+    VoiceCoach.speak("Paused. Take a breath. Resume when you're ready.", 'high');
+  }
+}
+
+// ═══════════════════════════════════════════
+//  END SESSION & POST
+// ═══════════════════════════════════════════
+function endSession() {
+  gameActive = false; clearInterval(gameLoop);
+  VoiceCoach.stop();
+  document.getElementById('navBar').style.display = 'flex';
+  const el = Date.now() - sessionStartTime, m = Math.floor(el/60000), s = Math.floor((el%60000)/1000);
+  document.getElementById('postDuration').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  document.getElementById('postBlocks').textContent = blocksPlaced;
+  document.getElementById('postLines').textContent = linesCleared;
+  document.getElementById('postRotations').textContent = totalRotations;
+  showScreen('postScreen');
+
+  // Voice summary
+  VoiceCoach.speak(`Session complete. You played for ${m} minutes and placed ${blocksPlaced} blocks. How do you feel now compared to before?`, 'high');
+}
+
+function selectPostMood(mood, btn, gridId) {
+  postMood = mood;
+  document.querySelectorAll(`#${gridId} .mood-btn`).forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  const prompts = {
+    better: "That's great to hear. If you'd like, jot down what helped today.",
+    same: "That's okay \u2014 consistency matters more than any single session. Any thoughts?",
+    worse: "Some sessions feel harder. That's normal. Anything you'd like to write down?",
+  };
+  document.getElementById('journalPrompt').textContent = prompts[mood];
+  document.getElementById('journalArea').style.display = 'block';
+  VoiceCoach.speak(prompts[mood], 'high');
+}
+
+function saveJournalAndFinish() { finishSession(); }
+
+function finishSession() {
+  VoiceCoach.stop();
+  const elapsed = Date.now() - sessionStartTime;
+  DB.sessions.push({
+    date: new Date().toISOString(),
+    durationMs: elapsed,
+    preMood, postMood,
+    flashbackCount,
+    usedRecall,
+    blocksPlaced,
+    linesCleared,
+    totalRotations,
+    avgSpeed: speedLevel,
+    journal: document.getElementById('journalEntry').value.trim(),
+  });
+  saveDB();
+  VoiceCoach.speak("Session saved. Take care of yourself.", 'high');
+  resetCheckin();
+  showScreen('checkinScreen');
+}
+
+// ═══════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════
+function renderDashboard() {
+  const el = document.getElementById('dashContent');
+  const sessions = DB.sessions;
+
+  if (sessions.length === 0) {
+    el.innerHTML = '<div class="empty-state">No sessions yet. Play your first game to start tracking progress.</div>';
+    return;
+  }
+
+  const totalMins = Math.round(sessions.reduce((a, s) => a + s.durationMs, 0) / 60000);
+  const avgDur = Math.round(totalMins / sessions.length);
+  const moodImproved = sessions.filter(s => s.postMood === 'better').length;
+  const moodPct = Math.round((moodImproved / sessions.length) * 100);
+
+  const fbSessions = sessions.filter(s => s.flashbackCount >= 0);
+  let fbTrend = '';
+  if (fbSessions.length >= 2) {
+    const firstHalf = fbSessions.slice(0, Math.ceil(fbSessions.length / 2));
+    const secondHalf = fbSessions.slice(Math.ceil(fbSessions.length / 2));
+    const avgFirst = firstHalf.reduce((a, s) => a + s.flashbackCount, 0) / firstHalf.length;
+    const avgSecond = secondHalf.reduce((a, s) => a + s.flashbackCount, 0) / secondHalf.length;
+    if (avgSecond < avgFirst) fbTrend = `\u2193 Decreasing (${avgFirst.toFixed(1)} \u2192 ${avgSecond.toFixed(1)})`;
+    else if (avgSecond > avgFirst) fbTrend = `\u2191 Increasing (${avgFirst.toFixed(1)} \u2192 ${avgSecond.toFixed(1)})`;
+    else fbTrend = `\u2192 Stable (${avgFirst.toFixed(1)})`;
+  }
+
+  const chartW = 600, chartH = 100, padL = 5, padR = 5;
+  const moodMap = { good: 4, okay: 3, struggling: 2, distressed: 1, better: 4, same: 3, worse: 2 };
+  const prePoints = sessions.map((s, i) => ({
+    x: padL + (i / Math.max(1, sessions.length - 1)) * (chartW - padL - padR),
+    y: chartH - ((moodMap[s.preMood] || 2.5) / 4) * (chartH - 10) - 5
+  }));
+  const postPoints = sessions.map((s, i) => ({
+    x: padL + (i / Math.max(1, sessions.length - 1)) * (chartW - padL - padR),
+    y: chartH - ((moodMap[s.postMood] || 2.5) / 4) * (chartH - 10) - 5
+  }));
+
+  function polyline(pts, color) {
+    if (pts.length < 2) return `<circle cx="${pts[0].x}" cy="${pts[0].y}" r="4" fill="${color}"/>`;
+    return `<polyline points="${pts.map(p => `${p.x},${p.y}`).join(' ')}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round"/>` +
+      pts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="3" fill="${color}"/>`).join('');
+  }
+
+  const chartSvg = `<svg viewBox="0 0 ${chartW} ${chartH}" preserveAspectRatio="none">
+    <line x1="${padL}" y1="${chartH/2}" x2="${chartW-padR}" y2="${chartH/2}" stroke="rgba(45,63,86,0.3)" stroke-width="1" stroke-dasharray="4"/>
+    ${polyline(prePoints, '#8899aa')}
+    ${polyline(postPoints, '#8ecae6')}
+  </svg>`;
+
+  const recentSessions = sessions.slice(-8).reverse();
+  const sessionListHtml = recentSessions.map(s => {
+    const d = new Date(s.date);
+    const dur = Math.round(s.durationMs / 60000);
+    const preEmoji = { good: '\ud83d\ude0a', okay: '\ud83d\ude10', struggling: '\ud83d\ude14', distressed: '\ud83d\ude30' }[s.preMood] || '';
+    const postEmoji = { better: '\ud83d\ude0a', same: '\ud83d\ude10', worse: '\ud83d\ude14' }[s.postMood] || '';
+    return `<div class="session-item">
+      <span class="si-date">${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+      <span class="si-dur">${dur}m</span>
+      <span class="si-mood">${preEmoji} \u2192 ${postEmoji}</span>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="dash-grid">
+      <div class="dash-card">
+        <h3>Total Sessions</h3>
+        <div class="dash-big">${sessions.length}</div>
+        <div class="dash-sub">${totalMins} total minutes</div>
+      </div>
+      <div class="dash-card">
+        <h3>Avg Session</h3>
+        <div class="dash-big">${avgDur}m</div>
+        <div class="dash-sub">Target: 20m</div>
+      </div>
+      <div class="dash-card">
+        <h3>Felt Better After</h3>
+        <div class="dash-big">${moodPct}%</div>
+        <div class="dash-sub">${moodImproved} of ${sessions.length} sessions</div>
+      </div>
+      <div class="dash-card">
+        <h3>Flashback Trend</h3>
+        <div class="dash-big" style="font-size:1.1rem;">${fbTrend || 'Not enough data'}</div>
+        <div class="dash-sub">${fbSessions.length} session${fbSessions.length !== 1 ? 's' : ''} tracked</div>
+      </div>
+      <div class="dash-card full">
+        <h3>Mood Over Time <span style="color:var(--text-dim);font-weight:normal;">(gray = before, blue = after)</span></h3>
+        <div class="chart-area">${chartSvg}</div>
+      </div>
+      <div class="dash-card full">
+        <h3>Recent Sessions</h3>
+        <div class="session-list">${sessionListHtml || '<div class="empty-state">No sessions yet</div>'}</div>
+      </div>
+    </div>
+  `;
+}
+
+// ── roundRect polyfill ──
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    if (typeof r === 'number') r = [r,r,r,r];
+    this.moveTo(x+r[0],y); this.lineTo(x+w-r[1],y); this.quadraticCurveTo(x+w,y,x+w,y+r[1]);
+    this.lineTo(x+w,y+h-r[2]); this.quadraticCurveTo(x+w,y+h,x+w-r[2],y+h);
+    this.lineTo(x+r[3],y+h); this.quadraticCurveTo(x,y+h,x,y+h-r[3]);
+    this.lineTo(x,y+r[0]); this.quadraticCurveTo(x,y,x+r[0],y); this.closePath(); return this;
+  };
+}
+
+init();
+</script>
+</body>
+</html>

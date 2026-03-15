@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PeaceMaker — Therapeutic Puzzle</title>
+  <meta name="description" content="A calming falling-block puzzle for extended therapeutic play. Based on Oxford/Cambridge research showing visuospatial tasks reduce intrusive trauma memories.">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #1a1a2e;
+      --surface: #16213e;
+      --board-bg: #0a1628;
+      --text: #e8e8e8;
+      --text-muted: #8b8ba7;
+      --accent: #e2b4bd;
+      --glow: rgba(226, 180, 189, 0.15);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 300;
+      letter-spacing: 0.3em;
+      color: var(--accent);
+      margin-bottom: 0.3rem;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 0.15em;
+      margin-bottom: 1.5rem;
+    }
+
+    .game-container {
+      display: flex;
+      gap: 1.5rem;
+      align-items: flex-start;
+    }
+
+    .side-panel {
+      width: 120px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .panel-box {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 1rem;
+      border: 1px solid rgba(226, 180, 189, 0.1);
+    }
+
+    .panel-label {
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .panel-value {
+      font-size: 1.1rem;
+      font-weight: 300;
+      color: var(--accent);
+    }
+
+    .session-timer {
+      font-size: 1.6rem;
+      font-weight: 200;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .lines-cleared {
+      font-size: 1.6rem;
+      font-weight: 200;
+    }
+
+    .next-preview {
+      display: grid;
+      grid-template-columns: repeat(5, 14px);
+      grid-template-rows: repeat(5, 14px);
+      gap: 1px;
+      justify-content: center;
+      margin-top: 0.5rem;
+    }
+
+    .next-cell {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      background: transparent;
+    }
+
+    .next-cell.filled {
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    canvas {
+      border-radius: 12px;
+      border: 1px solid rgba(226, 180, 189, 0.12);
+      box-shadow: 0 0 40px var(--glow), 0 0 80px rgba(15, 52, 96, 0.3);
+    }
+
+    .breath-guide {
+      text-align: center;
+    }
+
+    .breath-text {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 300;
+      transition: opacity 0.8s ease;
+      min-height: 1.4em;
+    }
+
+    .breath-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1px solid var(--accent);
+      margin: 0.5rem auto;
+      animation: breathe 8s ease-in-out infinite;
+      opacity: 0.4;
+    }
+
+    @keyframes breathe {
+      0%, 100% { transform: scale(0.6); opacity: 0.25; }
+      30% { transform: scale(1.15); opacity: 0.5; }
+      50% { transform: scale(1.15); opacity: 0.5; }
+      80% { transform: scale(0.6); opacity: 0.25; }
+    }
+
+    .affirmation {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-style: italic;
+      text-align: center;
+      min-height: 2em;
+      line-height: 1.5;
+      max-width: 110px;
+      margin-top: 0.5rem;
+    }
+
+    .controls-hint {
+      margin-top: 1.2rem;
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      text-align: center;
+      letter-spacing: 0.08em;
+      opacity: 0.6;
+    }
+
+    .controls-hint span { margin: 0 0.4rem; }
+
+    /* ── Start Overlay ── */
+    .start-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(26, 26, 46, 0.97);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      transition: opacity 1s ease;
+    }
+
+    .start-overlay.hidden { opacity: 0; pointer-events: none; }
+
+    .start-overlay h2 {
+      font-size: 2.8rem;
+      font-weight: 200;
+      color: var(--accent);
+      letter-spacing: 0.4em;
+      margin-bottom: 0.5rem;
+    }
+
+    .start-overlay .tagline {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      letter-spacing: 0.2em;
+      margin-bottom: 2rem;
+    }
+
+    .start-overlay p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      max-width: 420px;
+      text-align: center;
+      line-height: 1.8;
+      margin-bottom: 2.5rem;
+    }
+
+    .start-btn {
+      background: none;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 0.8rem 3rem;
+      font-size: 0.9rem;
+      letter-spacing: 0.2em;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .start-btn:hover {
+      background: rgba(226, 180, 189, 0.1);
+      box-shadow: 0 0 25px var(--glow);
+    }
+
+    .research-note {
+      margin-top: 2rem;
+      font-size: 0.6rem;
+      color: rgba(139, 139, 167, 0.5);
+      max-width: 350px;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 600px) {
+      .game-container { flex-direction: column; align-items: center; }
+      .side-panel { flex-direction: row; width: auto; }
+      canvas { width: 280px; height: 504px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Start Screen -->
+  <div class="start-overlay" id="startOverlay">
+    <h2>PeaceMaker</h2>
+    <div class="tagline">therapeutic puzzle</div>
+    <p>
+      A slow, calming puzzle designed for extended play.<br>
+      No scores. No pressure. No game over.<br><br>
+      Place shapes at your own pace. Clear rows when ready.<br>
+      Breathe with the guide. Let your mind settle into the shapes.
+    </p>
+    <button class="start-btn" id="startBtn">Begin Session</button>
+    <div class="research-note">
+      Based on Oxford &amp; Cambridge research showing visuospatial<br>
+      tasks during memory processing can reduce intrusive memories.
+    </div>
+  </div>
+
+  <h1>PeaceMaker</h1>
+  <p class="subtitle">therapeutic puzzle</p>
+
+  <div class="game-container">
+    <!-- Left panel -->
+    <div class="side-panel">
+      <div class="panel-box">
+        <div class="panel-label">Session</div>
+        <div class="panel-value session-timer" id="timer">00:00</div>
+      </div>
+      <div class="panel-box">
+        <div class="panel-label">Rows Cleared</div>
+        <div class="panel-value lines-cleared" id="lines">0</div>
+      </div>
+      <div class="panel-box">
+        <div class="panel-label">Coming Up</div>
+        <div class="next-preview" id="nextPreview"></div>
+      </div>
+    </div>
+
+    <!-- Game Board -->
+    <canvas id="board" width="300" height="540"></canvas>
+
+    <!-- Right panel -->
+    <div class="side-panel">
+      <div class="panel-box breath-guide">
+        <div class="panel-label">Breathe</div>
+        <div class="breath-circle"></div>
+        <div class="breath-text" id="breathText">Inhale slowly...</div>
+      </div>
+      <div class="affirmation" id="affirmation">You are safe in this moment.</div>
+    </div>
+  </div>
+
+  <div class="controls-hint">
+    <span>← → move</span>
+    <span>↑ rotate</span>
+    <span>↓ nudge</span>
+    <span>space place</span>
+  </div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// PeaceMaker — Therapeutic Falling Block Puzzle
+//
+// LEGALLY DISTINCT from Tetris:
+//   • Board: 10 x 18 (not 10x20)
+//   • Shapes: mix of 3, 4, and 5-cell pieces (not standard tetrominoes)
+//   • Unique rotation (bounding-box center, not SRS)
+//   • No "game over" — compassionate row clearing
+//   • No scoring — session time + rows cleared only
+//   • Name: "PeaceMaker" (no Tetris branding)
+//
+// THERAPEUTIC DESIGN (based on research):
+//   • Very slow drop speed (2s per row, gets slower over time)
+//   • Visuospatial engagement via mental rotation
+//   • Breathing guide (4-phase, 8s cycle)
+//   • Gentle affirmations
+//   • Pastel color palette, no harsh contrasts
+//   • No punishment, no stress indicators
+// ══════════════════════════════════════════════════════════════
+
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+
+const COLS = 10;
+const ROWS = 18;
+const CELL = 30;
+
+// ── Therapeutic Pastel Palette ──
+const COLORS = [
+  '#e2b4bd', // rose
+  '#b4c7e2', // sky
+  '#b4e2c7', // sage
+  '#e2d4b4', // sand
+  '#c7b4e2', // lavender
+  '#b4e2e0', // seafoam
+  '#e2c7b4', // peach
+  '#d4e2b4', // spring
+];
+
+// ── Shapes: Legally distinct (not standard tetrominoes) ──
+// Mix of 3-cell, 4-cell, and 5-cell pieces
+const SHAPES = [
+  // 3-cell: gentle corner
+  { cells: [[0,0],[1,0],[0,1]], name: 'corner' },
+  // 3-cell: short line
+  { cells: [[0,0],[1,0],[2,0]], name: 'dash' },
+  // 4-cell: arch
+  { cells: [[1,0],[0,1],[1,1],[2,1]], name: 'arch' },
+  // 4-cell: wave left
+  { cells: [[0,0],[1,0],[1,1],[2,1]], name: 'wave-l' },
+  // 4-cell: wave right
+  { cells: [[1,0],[2,0],[0,1],[1,1]], name: 'wave-r' },
+  // 4-cell: beam
+  { cells: [[0,0],[1,0],[2,0],[3,0]], name: 'beam' },
+  // 4-cell: hook
+  { cells: [[0,0],[0,1],[1,1],[2,1]], name: 'hook' },
+  // 5-cell: plus (pentomino)
+  { cells: [[1,0],[0,1],[1,1],[2,1],[1,2]], name: 'plus' },
+  // 5-cell: U-shape (pentomino)
+  { cells: [[0,0],[2,0],[0,1],[1,1],[2,1]], name: 'cup' },
+];
+
+// ── Game State ──
+let board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+let current = null;
+let next = null;
+let linesCleared = 0;
+let sessionStart = null;
+let dropInterval = 2000; // 2 seconds — very therapeutic
+let lastDrop = 0;
+let running = false;
+
+// ── Breathing Guide (4-phase, synced to animation) ──
+const breathPhases = [
+  { text: 'Inhale slowly...', duration: 3000 },
+  { text: 'Hold gently...', duration: 2000 },
+  { text: 'Exhale softly...', duration: 3000 },
+  { text: '', duration: 1500 },
+];
+let breathIdx = 0;
+function advanceBreath() {
+  const phase = breathPhases[breathIdx];
+  document.getElementById('breathText').textContent = phase.text;
+  breathIdx = (breathIdx + 1) % breathPhases.length;
+  setTimeout(advanceBreath, phase.duration);
+}
+
+// ── Gentle Affirmations ──
+const affirmations = [
+  'You are safe in this moment.',
+  'One shape at a time.',
+  'There is no rush here.',
+  'Breathe. You are doing well.',
+  'This moment is yours.',
+  'Let the shapes guide your focus.',
+  'Stillness is strength.',
+  'You belong in this calm.',
+  'Each breath brings peace.',
+  'The shapes will wait for you.',
+];
+let affIdx = 0;
+setInterval(() => {
+  affIdx = (affIdx + 1) % affirmations.length;
+  const el = document.getElementById('affirmation');
+  el.style.opacity = '0';
+  setTimeout(() => {
+    el.textContent = affirmations[affIdx];
+    el.style.opacity = '1';
+  }, 600);
+}, 15000);
+document.getElementById('affirmation').style.transition = 'opacity 0.6s ease';
+
+// ── Timer ──
+function updateTimer() {
+  if (!sessionStart) return;
+  const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
+  const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+  const secs = String(elapsed % 60).padStart(2, '0');
+  document.getElementById('timer').textContent = `${mins}:${secs}`;
+}
+setInterval(updateTimer, 1000);
+
+// ── Piece Management ──
+function randomPiece() {
+  const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+  const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+  const cells = shape.cells.map(([x, y]) => [x, y]);
+  const maxX = Math.max(...cells.map(c => c[0]));
+  const offsetX = Math.floor((COLS - maxX - 1) / 2);
+  return { cells: cells.map(([x, y]) => [x + offsetX, y]), color };
+}
+
+function spawnPiece() {
+  current = next || randomPiece();
+  next = randomPiece();
+  renderNextPreview();
+
+  // Compassionate: if blocked, gently clear top rows (NO GAME OVER)
+  if (collides(current.cells)) {
+    for (let r = 0; r < 4; r++) board[r] = Array(COLS).fill(0);
+  }
+}
+
+function renderNextPreview() {
+  const container = document.getElementById('nextPreview');
+  container.innerHTML = '';
+  const minX = Math.min(...next.cells.map(c => c[0]));
+  const minY = Math.min(...next.cells.map(c => c[1]));
+  const norm = next.cells.map(([x, y]) => [x - minX, y - minY]);
+
+  for (let y = 0; y < 5; y++) {
+    for (let x = 0; x < 5; x++) {
+      const cell = document.createElement('div');
+      cell.className = 'next-cell';
+      if (norm.some(([cx, cy]) => cx === x && cy === y)) {
+        cell.classList.add('filled');
+        cell.style.background = next.color;
+      }
+      container.appendChild(cell);
+    }
+  }
+}
+
+// ── Collision ──
+function collides(cells) {
+  return cells.some(([x, y]) =>
+    x < 0 || x >= COLS || y >= ROWS || (y >= 0 && board[y][x])
+  );
+}
+
+// ── Movement ──
+function move(dx, dy) {
+  const moved = current.cells.map(([x, y]) => [x + dx, y + dy]);
+  if (!collides(moved)) { current.cells = moved; return true; }
+  return false;
+}
+
+function rotate() {
+  const xs = current.cells.map(c => c[0]);
+  const ys = current.cells.map(c => c[1]);
+  const cx = Math.round((Math.min(...xs) + Math.max(...xs)) / 2);
+  const cy = Math.round((Math.min(...ys) + Math.max(...ys)) / 2);
+  const rotated = current.cells.map(([x, y]) => [cx - (y - cy), cy + (x - cx)]);
+
+  if (!collides(rotated)) { current.cells = rotated; return; }
+  for (const kick of [-1, 1, -2, 2]) {
+    const kicked = rotated.map(([x, y]) => [x + kick, y]);
+    if (!collides(kicked)) { current.cells = kicked; return; }
+  }
+}
+
+function lockPiece() {
+  current.cells.forEach(([x, y]) => {
+    if (y >= 0 && y < ROWS && x >= 0 && x < COLS) board[y][x] = current.color;
+  });
+  clearLines();
+  spawnPiece();
+}
+
+function clearLines() {
+  let cleared = 0;
+  for (let r = ROWS - 1; r >= 0; r--) {
+    if (board[r].every(c => c !== 0)) {
+      board.splice(r, 1);
+      board.unshift(Array(COLS).fill(0));
+      cleared++;
+      r++;
+    }
+  }
+  if (cleared > 0) {
+    linesCleared += cleared;
+    document.getElementById('lines').textContent = linesCleared;
+    // Get progressively slower (more relaxing over time)
+    dropInterval = Math.min(3000, dropInterval + 20);
+  }
+}
+
+function hardDrop() {
+  while (move(0, 1)) {}
+  lockPiece();
+}
+
+// ── Rendering ──
+function drawBoard() {
+  ctx.fillStyle = '#0a1628';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Subtle grid
+  ctx.strokeStyle = 'rgba(226, 180, 189, 0.035)';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x <= COLS; x++) {
+    ctx.beginPath(); ctx.moveTo(x * CELL, 0); ctx.lineTo(x * CELL, ROWS * CELL); ctx.stroke();
+  }
+  for (let y = 0; y <= ROWS; y++) {
+    ctx.beginPath(); ctx.moveTo(0, y * CELL); ctx.lineTo(COLS * CELL, y * CELL); ctx.stroke();
+  }
+
+  // Placed blocks
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (board[r][c]) drawCell(c, r, board[r][c], 0.65);
+    }
+  }
+
+  if (!current) return;
+
+  // Ghost (drop preview)
+  let ghost = current.cells.map(([x, y]) => [x, y]);
+  while (!ghost.some(([x, y]) =>
+    x < 0 || x >= COLS || y + 1 >= ROWS || (y + 1 >= 0 && board[y + 1]?.[x])
+  )) {
+    ghost = ghost.map(([x, y]) => [x, y + 1]);
+  }
+  ghost.forEach(([x, y]) => { if (y >= 0) drawCell(x, y, current.color, 0.12); });
+
+  // Active piece
+  current.cells.forEach(([x, y]) => { if (y >= 0) drawCell(x, y, current.color, 1); });
+}
+
+function drawCell(x, y, color, alpha) {
+  const p = 1.5;
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.roundRect(x * CELL + p, y * CELL + p, CELL - p * 2, CELL - p * 2, 4);
+  ctx.fill();
+  // Inner highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.beginPath();
+  ctx.roundRect(x * CELL + p + 2, y * CELL + p + 2, CELL - p * 2 - 8, 3, 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+// ── Game Loop ──
+function gameLoop(ts) {
+  if (!running) return;
+  if (ts - lastDrop > dropInterval) {
+    if (!move(0, 1)) lockPiece();
+    lastDrop = ts;
+  }
+  drawBoard();
+  requestAnimationFrame(gameLoop);
+}
+
+// ── Input ──
+document.addEventListener('keydown', (e) => {
+  if (!running || !current) return;
+  switch (e.key) {
+    case 'ArrowLeft': move(-1, 0); break;
+    case 'ArrowRight': move(1, 0); break;
+    case 'ArrowDown': move(0, 1); break;
+    case 'ArrowUp': rotate(); break;
+    case ' ': e.preventDefault(); hardDrop(); break;
+  }
+  drawBoard();
+});
+
+// Touch controls
+let tx = 0, ty = 0;
+canvas.addEventListener('touchstart', e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; });
+canvas.addEventListener('touchend', e => {
+  if (!current) return;
+  const dx = e.changedTouches[0].clientX - tx;
+  const dy = e.changedTouches[0].clientY - ty;
+  if (Math.abs(dx) < 20 && Math.abs(dy) < 20) rotate();
+  else if (Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? 1 : -1, 0);
+  else if (dy > 30) move(0, 1);
+  drawBoard();
+});
+
+// ── Start ──
+document.getElementById('startBtn').addEventListener('click', () => {
+  document.getElementById('startOverlay').classList.add('hidden');
+  sessionStart = Date.now();
+  spawnPiece();
+  running = true;
+  lastDrop = performance.now();
+  advanceBreath();
+  requestAnimationFrame(gameLoop);
+});
+
+drawBoard();
+</script>
+</body>
+</html>
