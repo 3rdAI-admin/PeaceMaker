@@ -655,30 +655,55 @@ function playPlaceSound() {
 let voiceEnabled = true;
 let resolvedVoice = null;
 
+// Voice preference order (best → fallback)
+// Download premium voices: System Settings → Accessibility → Spoken Content → Manage Voices
+const VOICE_PREFERENCES = [
+  // Premium/Enhanced (most natural, must be downloaded)
+  'Zoe',        // Premium female — warm, natural, closest to Scarlett Johansson calm
+  'Ava',        // Premium female — smooth, professional
+  'Allison',    // Premium female — gentle, clear
+  'Evan',       // Premium male — deep, warm, closest to Morgan Freeman calm
+  'Tom',        // Premium male — natural, authoritative
+  // Standard (pre-installed, decent quality)
+  'Samantha',   // Standard female — clear, familiar
+  'Karen',      // Australian female — warm tone
+  'Daniel',     // British male — calm, measured
+  'Moira',      // Irish female — gentle, soothing
+  'Shelley',    // Female — soft
+  'Tessa',      // South African female — warm
+];
+
 function initVoices() {
   if (!window.speechSynthesis) return;
   function loadVoices() {
     const voices = speechSynthesis.getVoices();
     if (voices.length === 0) return;
-    // Prefer calm, natural English voices
-    resolvedVoice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Samantha'))
-      || voices.find(v => v.lang.startsWith('en') && (v.name.includes('Female') || v.name.includes('Natural')))
-      || voices.find(v => v.lang.startsWith('en'))
-      || voices[0];
-    console.log('[PeaceMaker Voice] Ready:', resolvedVoice?.name);
+
+    // Try each preferred voice in order
+    for (const pref of VOICE_PREFERENCES) {
+      const match = voices.find(v => v.name.includes(pref) && v.lang.startsWith('en'));
+      if (match) {
+        resolvedVoice = match;
+        console.log('[PeaceMaker Voice] Selected:', match.name, `(${match.lang})`);
+        return;
+      }
+    }
+    // Fallback to any English voice
+    resolvedVoice = voices.find(v => v.lang.startsWith('en')) || voices[0];
+    console.log('[PeaceMaker Voice] Fallback:', resolvedVoice?.name);
   }
   loadVoices();
   speechSynthesis.onvoiceschanged = loadVoices;
 }
 
-function speak(text, rate = 0.8, pitch = 0.92) {
+function speak(text, rate = 0.78, pitch = 0.88) {
   if (!voiceEnabled || !text || !window.speechSynthesis || !resolvedVoice) return;
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.voice = resolvedVoice;
-  u.rate = rate;
-  u.pitch = pitch;
-  u.volume = masterGain ? masterGain.gain.value : 0.6;
+  u.rate = rate;    // Slower than normal — calm, therapeutic pace
+  u.pitch = pitch;  // Lower pitch — warmer, more soothing
+  u.volume = Math.min(0.7, masterGain ? masterGain.gain.value : 0.5);
   speechSynthesis.speak(u);
 }
 
